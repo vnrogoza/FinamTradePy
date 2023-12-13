@@ -1,0 +1,4 @@
+DB/
+__pycache__/
+*.txt
+test.py
