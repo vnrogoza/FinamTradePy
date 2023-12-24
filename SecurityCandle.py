@@ -72,7 +72,8 @@ for line in file:
 print(SecurityCandleTable)
 for SecCandle in SecurityCandleTable:
     #SecCandle = [board, security, timeframe, datefrom, dateto]
-    print(SecCandle[0])
-    if SecCandle[2]==None or SecCandle[2]==0:
-        if dateto==None:
-            dateto = datetime.
+    print(SecCandle[0])    
+    if dateto==None:
+        dateto = BaseHelper.DateNow(SecCandle[2])
+    if datefrom==None:
+        datefrom = BaseHelper.DateNow(SecCandle[2])

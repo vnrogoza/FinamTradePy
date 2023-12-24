@@ -90,9 +90,14 @@ def DateNow(argTimeFrame):
   if argTimeFrame not in  ["M15","H1","D1"]:
       print("DateDiff: Wrong timeframe")
       return None
-  from datetime import datetime
-  currentDatetime = datetime.now()
-  #if argTimeFrame == "M15":
+  from datetime import datetime  
+  ct = datetime.now() 
+  if argTimeFrame == "D1":
+    return datetime(ct.year, ct.month, ct.day)
+  if argTimeFrame in ["H1", "M15"]:
+    return datetime(ct.year, ct.month, ct.day, ct.hour)  
+    
+
 
 
 
