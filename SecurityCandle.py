@@ -9,6 +9,7 @@ from finam_trade_api.candles.model import (
     IntraDayInterval
 )
 import BaseHelper
+import datetime
 
 token = BaseHelper.GetToken()
 #Board,Sec,Tf,Num,DtFrom,DtTo
@@ -46,13 +47,13 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 file = open("DB\SecurityCandle.txt")
 for line in file:
     line = line.rstrip()
-    sc = line.split(';')
-    board = sc[0] if len(sc)>=1 else None
-    security = sc[1] if len(sc)>=2 else None
-    timeframe = sc[2] if len(sc)>=3 else None
-    num = sc[3] if len(sc)>=4 else None
-    datefrom = sc[4] if len(sc)>=5 else None
-    dateto = sc[5] if len(sc)>=5 else None
+    scLine = line.split(';')
+    board = scLine[0] if len(scLine)>=1 else None
+    security = scLine[1] if len(scLine)>=2 else None
+    timeframe = scLine[2] if len(scLine)>=3 else None
+    num = scLine[3] if len(scLine)>=4 else None
+    datefrom = scLine[4] if len(scLine)>=5 else None
+    dateto = scLine[5] if len(scLine)>=5 else None
     if board == '':
         print('Board not specified')
         quit()
@@ -66,9 +67,12 @@ for line in file:
     #    print('Num of candels / Datefrom-Dateto interval not specified')
     #    quit()
     #if num is None:
-
-
-    SecurityCandleTable.append(sc)
-
-
+    SecCandle = [board, security, timeframe, datefrom, dateto]
+    SecurityCandleTable.append(SecCandle)
 print(SecurityCandleTable)
+for SecCandle in SecurityCandleTable:
+    #SecCandle = [board, security, timeframe, datefrom, dateto]
+    print(SecCandle[0])
+    if SecCandle[2]==None or SecCandle[2]==0:
+        if dateto==None:
+            dateto = datetime.
