@@ -46,7 +46,7 @@ def GetSecurityList():
         #with open("secList.txt", 'w', encoding='utf-8') as f:
         with open(filePath, 'w') as f:
             for secLine in secList:
-                f.write(secLine[0]+';'+secLine[1]+';'+str(secLine[2])+';'+str(secLine[3])+'\n')                
+                f.write(secLine[0]+';'+secLine[1]+';'+str(secLine[2])+';'+str(secLine[3])+'\n')
         f.close
     return secList
 

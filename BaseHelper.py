@@ -70,8 +70,12 @@ def DateAdd(argDatetime, argInterval, argTimeFrame):
         currDate += timedelta(hours=1)
       if argTimeFrame == "D1":
         currDate += timedelta(days=1)
-      if (currDate.weekday() in workDays) and (currDate not in holidays) and currDate.hour in workHours:
-        i += 1
+      if argTimeFrame in  ["M15","H1"]:
+        if (currDate.weekday() in workDays) and (currDate not in holidays) and (currDate.hour in workHours):
+          i += 1
+      if argTimeFrame in  ["D1"]:
+        if (currDate.weekday() in workDays) and (currDate not in holidays):
+          i += 1
         #print(i, currDate, currDate.weekday())
   if argInterval < 0:
     while i > argInterval:
@@ -81,8 +85,12 @@ def DateAdd(argDatetime, argInterval, argTimeFrame):
         currDate -= timedelta(hours=1)
       if argTimeFrame == "D1":
         currDate -= timedelta(days=1)
-      if (currDate.weekday() in workDays) and (currDate not in holidays) and currDate.hour in workHours:
-        i -= 1             
+      if argTimeFrame in  ["M15","H1"]:
+        if (currDate.weekday() in workDays) and (currDate not in holidays) and (currDate.hour in workHours):
+          i -= 1
+      if argTimeFrame in  ["D1"]:
+        if (currDate.weekday() in workDays) and (currDate not in holidays):
+          i -= 1      
         #print(i, currDate, currDate.weekday())
   return currDate
 
@@ -91,7 +99,7 @@ def DateNow(argTimeFrame):
       print("DateDiff: Wrong timeframe")
       return None
   from datetime import datetime  
-  ct = datetime.now() 
+  ct = datetime.now()
   if argTimeFrame == "D1":
     return datetime(ct.year, ct.month, ct.day)
   if argTimeFrame in ["H1", "M15"]:
