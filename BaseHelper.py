@@ -20,18 +20,19 @@ def DateInterval(argDatetime0, argDatetime1, argTimeFrame):
   #Акции1 10-23
   #Акции2 10-18
   #Фьючер  9-23
+
   m1sec = 60
   m5sec = m1sec*5
   m15sec = m1sec*15
   h1sec = m1sec*60
   d1sec = h1sec*24
-  dayHrs = 14
+  dayHrs = 14  #в 1 дне максимум 14 часов
   dayH1 = dayHrs * 1
   dayM15 = dayH1 * 4
   dayM5 = dayH1 * 12
   delta = argDatetime1 - argDatetime0
-  #Считаем количество рабочих дней  7.12 - 6.12 = 1д
-  holidays = [datetime(2023, 3, 8)]
+  #Считаем количество рабочих дней  
+  holidays = [datetime(2023, 3, 8)]  
   currDate = argDatetime0.date()
   workDays = 0
   currDate += timedelta(days=1)
@@ -46,7 +47,7 @@ def DateInterval(argDatetime0, argDatetime1, argTimeFrame):
     retValue = workDays * dayH1  #delta.days
     retValue = retValue + delta.seconds//h1sec
   if argTimeFrame == "D1":
-    retValue = workDays        
+    retValue = workDays+1  #7.12 - 6.12 = 2д
   return retValue
 
 def DateAdd(argDatetime, argInterval, argTimeFrame):
@@ -104,11 +105,7 @@ def DateNow(argTimeFrame):
     return datetime(ct.year, ct.month, ct.day)
   if argTimeFrame in ["H1", "M15"]:
     return datetime(ct.year, ct.month, ct.day, ct.hour)  
-    
-
-
-
-
+  
 if __name__ == "__main__":    
     start()
     #print(GetToken())

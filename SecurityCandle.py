@@ -6,9 +6,11 @@ from finam_trade_api.candles.model import (DayCandlesRequestModel, DayInterval, 
 import BaseHelper
 from datetime import datetime, timedelta
 
+
 token = BaseHelper.GetToken()
 #Board,Sec,Tf,Num,DtFrom,DtTo
 SecurityCandleTable = []
+CandleTable = []
 
 async def get_day_candles(argBoard, argSecurity, argTimeFrame, argCount, argDateFrom, argDateTo):
   client = Client(token)
@@ -39,17 +41,17 @@ asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 #print(asyncio.run(get_day_candles()))
 #res = asyncio.run(get_day_candles('CTS','USD000UTSTOM','D1',0,'2023-12-01','2023-12-14'))
-file = open("DB\SecurityCandle.txt","r+")
+file = open("SecurityCandle.txt","r")
 for line in file:
     line = line.rstrip()
     scLine = line.split(';')
     board = scLine[0] if len(scLine)>=1 else None
     security = scLine[1] if len(scLine)>=2 else None
-    timeframe = scLine[2] if len(scLine)>=3 else None
-    flag = scLine[3] if len(scLine)>=4 else None
-    num = scLine[4] if len(scLine)>=5 else None
-    datefrom = datetime.fromisoformat(scLine[5]) if len(scLine)>=6 else None
-    dateto = datetime.fromisoformat(scLine[6]) if len(scLine)>=7 else None
+    timeframe = scLine[2] if len(scLine)>=3 else None    
+    datefrom = datetime.fromisoformat(scLine[3]) if len(scLine)>=4 else None
+    dateto = datetime.fromisoformat(scLine[4]) if len(scLine)>=5 else None    
+    num = scLine[5] if len(scLine)>=6 else None
+    flag = scLine[6] if len(scLine)>=7 else None
     if board == '':
         print('Board not specified')
         quit()
@@ -63,51 +65,156 @@ for line in file:
     #    print('Num of candels / Datefrom-Dateto interval not specified')
     #    quit()
     #if num is None:
-    SecCandle = [board, security, timeframe, flag, num, datefrom, dateto]
+    SecCandle = [board, security, timeframe, datefrom, dateto, num, flag]
     SecurityCandleTable.append(SecCandle)
+file.close()
 
-i = 0
+idx = 0
 for SecCandle in SecurityCandleTable:
     #SecCandle = [board, security, timeframe, datefrom, dateto]
+    loadMode = ''
     board = SecCandle[0]
     security = SecCandle[1]
-    timeframe = SecCandle[2]
-    flag = SecCandle[3]
-    num = SecCandle[4]
-    datefrom = SecCandle[5]
-    dateto = SecCandle[6]
+    timeframe = SecCandle[2]    
+    datefrom = SecCandle[3]
+    dateto = SecCandle[4]
+    num = SecCandle[5]
+    flag = SecCandle[6]
+    
     if dateto==None:
         dateto = BaseHelper.DateNow(SecCandle[2])
     if datefrom==None:
-        datefrom = BaseHelper.DateAdd(dateto, -250, SecCandle[2])
-    if flag == '1':    
-        if timeframe in ["D1","W1"]:
-            candles = asyncio.run( get_day_candles(board, security, timeframe, 0, str(datefrom.date()), str(dateto.date())) )
+        if num == null:
+            num = 250
+        datefrom = BaseHelper.DateAdd(dateto, -num, SecCandle[2])
+        num = 250
+    else:
+        num = BaseHelper.DateInterval(datefrom, dateto, timeframe)
+
+    candleFileName = f'DB\{security}_{timeframe}.txt'            
+    if os.path.exists(candleFileName):
+        loadMode = 'L'  #local
+        if os.path.getsize(candleFileName) == 0:
+            loadMode = 'F'  #Finam
+    else:
+        loadMode = 'F'  #Finam
+    if flag in ['1','R']:   #перезагрузка
+        loadMode = 'F'  #Finam
+
+    if loadMode == 'F':
+        if num <= 250:
+            #1 request
+            if timeframe in ["D1","W1"]:
+                candles = asyncio.run( get_day_candles(board, security, timeframe, 0, str(datefrom.date()), str(dateto.date())) )
+            else:
+                candles = asyncio.run( get_in_day_candles(board, security, timeframe, 0, str(datefrom), str(dateto)) )   
+            num = candles.count()
+            candleFile = open(candleFileName, "w")
+            for line in candles:             
+                #security, timeframe
+                T = datetime.fromisoformat(line.date)
+                O = line.open.num/10**line.open.scale
+                H = line.high.num/10**line.high.scale
+                L = line.low.num/10**line.low.scale
+                C = line.close.num/10**line.close.scale
+                V = line.volume
+                candle = [security, timeframe, T, O, H, L, C, V]
+                CandleTable.append(candle)
+                candleFile.write(security+';'+timeframe+';'+str(T)+';'+str(O)+';'+str(H)+';'+str(L)+';'+str(C)+';'+str(V)+'\n') 
+            candleFile.close()
         else:
-            candles = asyncio.run( get_in_day_candles(board, security, timeframe, 0, str(datefrom), str(dateto)) )
-    
-        # print(candles)
-        candleFileName = f'DB\{security}_{timeframe}.txt'
-        #file_name = f'{datapath}{security_board}.{security_code}_{tf}.txt'
-        candleFile = open(candleFileName,"w")
-        for line in candles:        
-            candleFile.write(line.open.num+';'+line.high+';'+line.low+';'+line.low+'\n') 
+            #N-request
+            #деление длинног интервала на пачки 
+            candleFile = open(candleFileName, "w")
+            size = 250
+            #numCount = num//size
+            #lastNum = num%size
+            numCount = int(num/size)+1
+            size = int(num/numCount)
+            num = 0
+            for i in range(numCount-1):
+                n0 = i*size
+                n1 = (i+1)*size-1
+                if i == 0:
+                    dt0 = datefrom
+                else:    
+                    dt0 = BaseHelper.DateAdd(datefrom, n0, timeframe)
+                dt1 = BaseHelper.DateAdd(datefrom, n1, timeframe) 
+                print(dt0, dt1)
+                if timeframe in ["D1","W1"]:
+                    candles = asyncio.run( get_day_candles(board, security, timeframe, 0, str(dt0.date()), str(dt1.date())) )
+                else:
+                    candles = asyncio.run( get_in_day_candles(board, security, timeframe, 0, str(dt0), str(dt1)) )   
+                num += len(candles)
+                for line in candles:
+                    #security, timeframe
+                    T = datetime.fromisoformat(line.date)
+                    O = line.open.num/10**line.open.scale
+                    H = line.high.num/10**line.high.scale
+                    L = line.low.num/10**line.low.scale
+                    C = line.close.num/10**line.close.scale
+                    V = line.volume
+                    candle = [security, timeframe, T, O, H, L, C, V]
+                    CandleTable.append(candle)
+                    candleFile.write(security+';'+timeframe+';'+str(T)+';'+str(O)+';'+str(H)+';'+str(L)+';'+str(C)+';'+str(V)+'\n') 
+                
+            n0 = (i+1)*size
+            #n1 = num
+            dt0 = BaseHelper.DateAdd(datefrom, n0, timeframe)
+            dt1 = dateto 
+            print(dt0, dt1)
+            if timeframe in ["D1","W1"]:
+                candles = asyncio.run( get_day_candles(board, security, timeframe, 0, str(dt0.date()), str(dt1.date())) )
+            else:
+                candles = asyncio.run( get_in_day_candles(board, security, timeframe, 0, str(dt0), str(dt1)) )   
+            num += len(candles)
+            for line in candles:
+                #security, timeframe
+                T = datetime.fromisoformat(line.date)
+                O = line.open.num/10**line.open.scale
+                H = line.high.num/10**line.high.scale
+                L = line.low.num/10**line.low.scale
+                C = line.close.num/10**line.close.scale
+                V = line.volume
+                candle = [security, timeframe, T, O, H, L, C, V]
+                CandleTable.append(candle)
+                candleFile.write(security+';'+timeframe+';'+str(T)+';'+str(O)+';'+str(H)+';'+str(L)+';'+str(C)+';'+str(V)+'\n') 
+            candleFile.close()
 
 
-    flag = 0
-    
-    SecCandle[3] = flag 
-    SecCandle[4] = num
-    SecCandle[5] = datefrom
-    SecCandle[6] = dateto
-    SecurityCandleTable[i] = SecCandle
-    i += 1
+    if loadMode == 'L':
+        candleFile = open(candleFileName, "r")
+        num = 0 
+        for line in candleFile:
+            num += 1
+            #security, timeframe
+            items = line.rstrip().split(";")
+            security = items[0]
+            timeframe = items[1]
+            T = datetime.fromisoformat(items[2])
+            O = float(items[3])
+            H = float(items[4])
+            L = float(items[5])
+            C = float(items[6])
+            V = int(items[7])
+            candle = [security, timeframe, T, O, H, L, C, V]
+            #candleFile.write(line.open.num+';'+line.high+';'+line.low+';'+line.low+'\n') 
+            CandleTable.append(candle) 
+        candleFile.close()
 
-print(SecurityCandleTable)
+    #update SecurityCandleTable        
+    SecurityCandleTable[idx][3] = datefrom
+    SecurityCandleTable[idx][4] = dateto    
+    SecurityCandleTable[idx][5] = num
+    SecurityCandleTable[idx][6] = ''  #flag 
+    idx += 1
 
-#file = open("DB\SecurityCandle.txt","w")
+
+file = open("SecurityCandle.txt","w")
 for line in SecurityCandleTable:
-    file.write(line[0]+';'+line[1]+';'+line[2]+';'+str(line[3])+';'+str(line[4])+';'+str(line[5])+';'+str(line[6])+'\n')
-file.close
+    file.write(line[0]+';'+line[1]+';'+str(line[2])+';'+str(line[3])+';'+str(line[4])+';'+str(line[5])+';'+str(line[6])+'\n')    
+file.close()
+
+
 
 
