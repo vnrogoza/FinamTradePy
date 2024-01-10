@@ -12,7 +12,7 @@ def DateInterval(argDatetime0, argDatetime1, argTimeFrame):
   if argDatetime0 > argDatetime1:
     print("DateDiff: First date must be smaller then second")
     return None
-  if argTimeFrame not in  ["M15","H1","D1"]:
+  if argTimeFrame not in  ["M5","M15","H1","D1","W1"]:
     print("DateDiff: Wrong timeframe")
     return None
   #Индекс 10-18
@@ -30,7 +30,9 @@ def DateInterval(argDatetime0, argDatetime1, argTimeFrame):
   dayH1 = dayHrs * 1
   dayM15 = dayH1 * 4
   dayM5 = dayH1 * 12
-  delta = argDatetime1 - argDatetime0
+  delta = argDatetime1 - argDatetime0  
+  if argTimeFrame == "W1":
+    return delta.days//7
   #Считаем количество рабочих дней  
   holidays = [datetime(2023, 3, 8)]  
   currDate = argDatetime0.date()
@@ -40,6 +42,9 @@ def DateInterval(argDatetime0, argDatetime1, argTimeFrame):
     if currDate.weekday() < 5 and currDate not in holidays:
         workDays += 1
     currDate += timedelta(days=1)      
+  if argTimeFrame == "M5":
+    retValue = workDays * dayM5
+    retValue = retValue + delta.seconds//m5sec
   if argTimeFrame == "M15":
     retValue = workDays * dayM15
     retValue = retValue + delta.seconds//m15sec
@@ -55,7 +60,7 @@ def DateAdd(argDatetime, argInterval, argTimeFrame):
   if argInterval == 0:
     print("DateDiff: Wrong interval value")
     return None
-  if argTimeFrame not in  ["M15","H1","D1"]:
+  if argTimeFrame not in  ["M5","M15","H1","D1","W1"]:
     print("DateDiff: Wrong timeframe")
     return None  
   holidays = [datetime(2023, 3, 8)]
@@ -65,18 +70,22 @@ def DateAdd(argDatetime, argInterval, argTimeFrame):
   i = 0  
   if argInterval > 0:
     while i < argInterval:
+      if argTimeFrame == "M5":
+        currDate += timedelta(minutes=5)
       if argTimeFrame == "M15":
         currDate += timedelta(minutes=15)
       if argTimeFrame == "H1":
         currDate += timedelta(hours=1)
       if argTimeFrame == "D1":
         currDate += timedelta(days=1)
-      if argTimeFrame in  ["M15","H1"]:
+      if argTimeFrame in  ["M5","M15","H1"]:
         if (currDate.weekday() in workDays) and (currDate not in holidays) and (currDate.hour in workHours):
           i += 1
-      if argTimeFrame in  ["D1"]:
+      if argTimeFrame == "D1":
         if (currDate.weekday() in workDays) and (currDate not in holidays):
           i += 1
+      if argTimeFrame == "W1":
+        i += 1
         #print(i, currDate, currDate.weekday())
   if argInterval < 0:
     while i > argInterval:
@@ -86,24 +95,26 @@ def DateAdd(argDatetime, argInterval, argTimeFrame):
         currDate -= timedelta(hours=1)
       if argTimeFrame == "D1":
         currDate -= timedelta(days=1)
-      if argTimeFrame in  ["M15","H1"]:
+      if argTimeFrame in  ["M5","M15","H1"]:
         if (currDate.weekday() in workDays) and (currDate not in holidays) and (currDate.hour in workHours):
           i -= 1
-      if argTimeFrame in  ["D1"]:
+      if argTimeFrame == "D1":
         if (currDate.weekday() in workDays) and (currDate not in holidays):
-          i -= 1      
+          i -= 1 
         #print(i, currDate, currDate.weekday())
+      if argTimeFrame == "W1":        
+        i -= 1 
   return currDate
 
 def DateNow(argTimeFrame):
-  if argTimeFrame not in  ["M15","H1","D1"]:
+  if argTimeFrame not in  ["M5","M15","H1","D1","W1"]:
       print("DateDiff: Wrong timeframe")
       return None
   from datetime import datetime  
   ct = datetime.now()
-  if argTimeFrame == "D1":
+  if argTimeFrame in ["D1","W1"]:
     return datetime(ct.year, ct.month, ct.day)
-  if argTimeFrame in ["H1", "M15"]:
+  if argTimeFrame in ["M5","M15","H1"]:
     return datetime(ct.year, ct.month, ct.day, ct.hour)  
   
 if __name__ == "__main__":    
