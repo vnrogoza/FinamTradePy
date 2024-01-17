@@ -56,7 +56,7 @@ def LoadCandels(argSecurityCandleTable):
         if dateto==None:
             dateto = BaseHelper.DateNow(SecCandle[2])
         if datefrom==None:
-            if num == null:
+            if num == None:
                 num = 250
             datefrom = BaseHelper.DateAdd(dateto, -num, SecCandle[2])
             num = 250
@@ -291,4 +291,5 @@ x0 = [0, 4]
 y0 = [0, 0]
 ax2.plot(x0, y0, 'y', linewidth=1)
 #plt.scatter(range(1, len(gmean)+1), gmean, cmap="green")
+
 plt.show()

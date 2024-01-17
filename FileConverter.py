@@ -1,9 +1,21 @@
-fileName = "DB\GC_H1_27122023_28122023.txt"
-fileNameOut = "DB\GC_H1_Out.txt"
+fileName = "DB\GOLD_D1_240114_240115.txt"
+fileNameOut = "DB\GC_D1_Out.txt"
+
+def OnError(ErrorMessage):
+        fileIn.close()
+        fileOut.close()
+        print(ErrorMessage)
+        quit()
+
 fileIn = open(fileName, "r")
 fileOut = open(fileNameOut, "w")
+i = 0
 for line in fileIn:
-    line = line.rstrip()
+    i += 1
+    if i == 1:
+        if line[0:8]!='<TICKER>':
+            OnError("Проверьте заголовок файла")
+    line = line.rstrip()    
     if line[0:8]=='<TICKER>':        
         sep = line[8:9]
         header = line.split(sep)
@@ -18,9 +30,15 @@ for line in fileIn:
                 if items[i] == '60':
                     items[i] = 'H1'
                 TF = items[i]
-            if header[i]=='<DATE>':
+            if header[i]=='<DATE>':                
                 if items[i].find('-') == -1:
-                    items[i] = items[i][0:4]+'-'+items[i][4:6]+'-'+items[i][6:8]
+                    #230112
+                    if len(items[i])==6:
+                        items[i] = '20'+items[i][0:2]+'-'+items[i][2:4]+'-'+items[i][4:6]
+                    elif len(items[i])==8:
+                        items[i] = items[i][0:4]+'-'+items[i][4:6]+'-'+items[i][6:8]
+                    else:
+                        OnError("Проверьте формат даты")  
             if header[i]=='<TIME>':
                 #if not (items[i] in ['00:00','00:00:00']):
                 if TF in ['M5','M15','H1']:
