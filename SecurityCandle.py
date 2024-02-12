@@ -10,8 +10,6 @@ from datetime import datetime, timedelta
 
 token = BaseHelper.GetToken()
 #Board,Sec,Tf,Num,DtFrom,DtTo
-SecurityCandleTable = []
-CandleTable = []
 
 async def get_day_candles(argBoard, argSecurity, argTimeFrame, argCount, argDateFrom, argDateTo):
   client = Client(token)
@@ -37,6 +35,58 @@ async def get_in_day_candles(argBoard, argSecurity, argTimeFrame, argCount, argD
         )
     return await client.candles.get_in_day_candles(params)
 
+def LoadSecurityCandle(argSecFileName):
+    if (argSecFileName==None) or (argSecFileName==None):
+        print('File not specified')
+        quit()
+    retSecurityCandleTable = []
+    #file = open(secFileName,"r")
+    file = open(argSecFileName,"r")
+    for line in file:
+        line = line.rstrip()
+        scLine = line.split(';')
+        board = scLine[0] if len(scLine)>=1 else None
+        security = scLine[1] if len(scLine)>=2 else None
+        timeframe = scLine[2] if len(scLine)>=3 else None    
+        datefrom = datetime.fromisoformat(scLine[3]) if len(scLine)>=4 else None
+        dateto = datetime.fromisoformat(scLine[4]) if len(scLine)>=5 else None    
+        num = scLine[5] if len(scLine)>=6 else None
+        flag = scLine[6] if len(scLine)>=7 else None
+        if board == '':
+            print('Board not specified')
+            quit()
+        if security == '':
+            print('Security not specified')
+            quit()
+        if timeframe == '':
+            print('Timeframe not specified')
+            quit()
+        if timeframe in ['']:
+            print(f'Wrong timeframe {timeframe}')
+            quit()
+        #if num is None and datefrom is None and dateto is None:
+        #    print('Num of candels / Datefrom-Dateto interval not specified')
+        #    quit()
+        #if num is None:
+        if dateto==None:
+            dateto = BaseHelper.DateNow(SecCandle[2])
+        if datefrom==None:
+            if num == None:
+                num = 250
+            datefrom = BaseHelper.DateAdd(dateto, -num, SecCandle[2])
+            num = 250
+        else:
+            num = BaseHelper.DateInterval(datefrom, dateto, timeframe)
+        SecCandle = [board, security, timeframe, datefrom, dateto, num, flag]
+        retSecurityCandleTable.append(SecCandle)    
+        
+    #file = open(secFileName,"w")
+    for line in SecurityCandleTable:
+        file.write(line[0]+';'+line[1]+';'+str(line[2])+';'+str(line[3])+';'+str(line[4])+';'+str(line[5])+';'+str(line[6])+'\n')    
+    #file.close()
+
+    file.close()
+    return retSecurityCandleTable
 
 def LoadCandels(argSecurityCandleTable):
     #пишет в файлы свечки Candles
@@ -52,18 +102,17 @@ def LoadCandels(argSecurityCandleTable):
         datefrom = SecCandle[3]
         dateto = SecCandle[4]
         num = SecCandle[5]
-        flag = SecCandle[6]
+        flag = SecCandle[6]               
+        if board in ['', None]:
+            print('Board not specified')
+            quit()
+        if security in ['', None]:
+            print('Security not specified')
+            quit()
+        if timeframe in ['', None]:
+            print('Timeframe not specified')
+            quit()
         
-        if dateto==None:
-            dateto = BaseHelper.DateNow(SecCandle[2])
-        if datefrom==None:
-            if num == None:
-                num = 250
-            datefrom = BaseHelper.DateAdd(dateto, -num, SecCandle[2])
-            num = 250
-        else:
-            num = BaseHelper.DateInterval(datefrom, dateto, timeframe)
-
         candleFileName = f'DB\{security}_{timeframe}.txt'            
         if os.path.exists(candleFileName):
             loadMode = 'L'  #local
@@ -73,12 +122,13 @@ def LoadCandels(argSecurityCandleTable):
             loadMode = 'F'  #Finam
         if flag in ['1','R']:   #перезагрузка
             loadMode = 'F'  #Finam
-
-        if timeframe in ["D1","W1"]:
-            datefrom = datefrom.date()
-            dateto = dateto.date()
-
+       
         if loadMode == 'F':
+
+            if timeframe in ["D1","W1"]:
+                datefrom = datefrom.date()
+                dateto = dateto.date()
+
             if num <= 250:
                 #1 request            
                 if timeframe in ["D1","W1"]:
@@ -184,45 +234,4 @@ def LoadCandels(argSecurityCandleTable):
         argSecurityCandleTable[idx][6] = ''  #flag 
         idx += 1
     return retCandleTable
-#def LoadCandels(argSecurityCandleTable)
-
-#print(asyncio.run(get_day_candles()))
-#res = asyncio.run(get_day_candles('CTS','USD000UTSTOM','D1',0,'2023-12-01','2023-12-14'))
-secFileName = "SecurityCandle.txt"
-secFileName = "GC.txt"
-file = open(secFileName,"r")
-for line in file:
-    line = line.rstrip()
-    scLine = line.split(';')
-    board = scLine[0] if len(scLine)>=1 else None
-    security = scLine[1] if len(scLine)>=2 else None
-    timeframe = scLine[2] if len(scLine)>=3 else None    
-    datefrom = datetime.fromisoformat(scLine[3]) if len(scLine)>=4 else None
-    dateto = datetime.fromisoformat(scLine[4]) if len(scLine)>=5 else None    
-    num = scLine[5] if len(scLine)>=6 else None
-    flag = scLine[6] if len(scLine)>=7 else None
-    if board == '':
-        print('Board not specified')
-        quit()
-    if security == '':
-        print('Security not specified')
-        quit()
-    if timeframe == '':
-        print('Timeframe not specified')
-        quit()
-    if timeframe in ['']:
-        print(f'Wrong timeframe {timeframe}')
-        quit()
-    #if num is None and datefrom is None and dateto is None:
-    #    print('Num of candels / Datefrom-Dateto interval not specified')
-    #    quit()
-    #if num is None:
-    SecCandle = [board, security, timeframe, datefrom, dateto, num, flag]
-    SecurityCandleTable.append(SecCandle)    
-file.close()
-CandleTable = LoadCandels(SecurityCandleTable)
-
-file = open(secFileName,"w")
-for line in SecurityCandleTable:
-    file.write(line[0]+';'+line[1]+';'+str(line[2])+';'+str(line[3])+';'+str(line[4])+';'+str(line[5])+';'+str(line[6])+'\n')    
-file.close()
+    

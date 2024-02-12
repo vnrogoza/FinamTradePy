@@ -1,3 +1,24 @@
+from datetime import datetime, timedelta
+import SecurityCandle
+
+#Empty tables
+SecurityCandleTable = []
+CandleTable = []
+
+#Load Security list table
+#secFileName = "SecurityCandle.txt"
+#secFileName = "GC.txt"
+
+#SecurityCandleTable = SecurityCandle.LoadSecurityCandle(secFileName)
+
+SecurityCandleTable = [["ITEM","GC","D1",None,None,None,None]]
+#SecurityCandleTable = [["ITEM","GC","D1",None,None,None,None],["CETS","USD000UTSTOM","D1",None,None,None,None]]
+
+#Load Candle table
+CandleTable = SecurityCandle.LoadCandels(SecurityCandleTable)
+
+
+#for sec in SecurityCandleTable:
 
 table = {}
 tablew = {}
@@ -50,19 +71,44 @@ for key, values in table.items():
     gmean.append(g)
 
 import matplotlib.pyplot as plt
-import pandas as pd
-f,  ax1 = plt.subplots()
-f,  ax2 = plt.subplots()
-#plt.figure(figsize=[10,5])
-ax1.scatter(xd, yd, s=0.5)
-x0 = [1, 31]
-y0 = [0, 0]
-ax1.plot(x0, y0, 'y', linewidth=1)
-ax1.scatter(range(1, len(mean)+1), mean, cmap="red")
-ax2.scatter(xwd, ywd, s=0.5)
-x0 = [0, 4]
-y0 = [0, 0]
-ax2.plot(x0, y0, 'y', linewidth=1)
-#plt.scatter(range(1, len(gmean)+1), gmean, cmap="green")
+import matplotlib as mpl
+#import pandas as pd
 
-plt.show()
+if len(SecurityCandleTable) > 1:
+    nrows = len(SecurityCandleTable)
+    ncols = 2
+    fig,  ax = plt.subplots(nrows=nrows, ncols=ncols)
+    #plt.figure(figsize=[10,5])
+    for i in range(nrows):    
+        #Day data
+        ax[i][0].scatter(xd, yd, s=0.5)
+        x0 = [1, 31]
+        y0 = [0, 0]
+        ax[i][0].plot(x0, y0, 'y', linewidth=1)
+        ax[i][0].scatter(range(1, len(mean)+1), mean, cmap="red")
+        ax[i][0].set_title(SecurityCandleTable[i][1]+" Day")
+        #WeekDay data
+        ax[i][1].scatter(xwd, ywd, s=0.5)
+        x0 = [0, 4]
+        y0 = [0, 0]
+        ax[i][1].plot(x0, y0, 'y', linewidth=1)
+        ax[i][1].set_title(SecurityCandleTable[i][1]+" WeekDay")
+    plt.show()
+if len(SecurityCandleTable) == 1:        
+    ncols = 2
+    fig,  ax = plt.subplots(ncols=ncols)        
+    #Day data
+    ax[0].scatter(xd, yd, s=0.5)
+    x0 = [1, 31]
+    y0 = [0, 0]
+    ax[0].plot(x0, y0, 'y', linewidth=1)
+    ax[0].scatter(range(1, len(mean)+1), mean, cmap="red")
+    ax[0].set_title(SecurityCandleTable[0][1]+" Day")
+    #WeekDay data
+    ax[1].scatter(xwd, ywd, s=0.5)
+    x0 = [0, 4]
+    y0 = [0, 0]
+    ax[1].plot(x0, y0, 'y', linewidth=1)
+    ax[1].set_title(SecurityCandleTable[0][1]+" WeekDay")
+    plt.show()
+
