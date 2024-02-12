@@ -33,12 +33,20 @@ for SecurityCandle in SecurityCandleTable:
     CandleTable3 = CandleTable2[sec]
 
     #aggregate data x and y
-    table = {}  #{day:[values]}
-    tablew = {} #weekday
+    table = {}  #{day:[values]}    
     xd = []
     yd = []
+    tablew = {} #weekday
     xwd = []
     ywd = []    
+    table2 = {}  #day+pos/neg+values
+    xd2 = {}    
+    yd2 = {}
+    xd2["pos"]=[]
+    xd2["neg"]=[]
+    yd2["pos"]=[]
+    yd2["neg"]=[]
+    first = True
     for candle in CandleTable3:   
         #['GC', 'D1', datetime.datetime(2023, 12, 29, 0, 0), 2079.2, 2084.1, 2067.6, 2075.3, 76467]
         #sec = candle[0]
@@ -55,7 +63,20 @@ for SecurityCandle in SecurityCandleTable:
         up = C-O
         up = round(up, 3)
         #For statistics: sec-day-[values] -> calc avg values
-        
+        if not first:
+            O = prev[3]        
+            C = prev[6]
+            up0 = C-O
+            up0 = round(up0, 3)
+            if up0 < 0:
+                xd2["neg"].append(d)
+                yd2["neg"].append(up)
+            if up0 > 0:
+                xd2["pos"].append(d)
+                yd2["pos"].append(up)
+        prev = candle
+        first = False
+                
         if table.get(d) == None:   #list for sec-day
             table[d] = []        
         if tablew.get(wd) == None:   
@@ -78,26 +99,36 @@ for SecurityCandle in SecurityCandleTable:
             m = statistics.mean(values)
             trend[day] = m
       
-
-    fig,  ax = plt.subplots(nrows=1, ncols=2)           
-    i = 0
+    fig, ax = plt.subplots(nrows=2, ncols=2)    
         
     #Day data
-    ax[0].scatter(xd, yd, s=0.5)
+    ax[0][0].scatter(xd, yd, s=2)
     x0 = [min(xd), max(xd)]
     y0 = [0, 0]
-    ax[0].plot(x0, y0, 'y', linewidth=1)
-    ax[0].scatter(trend.keys(), trend.values(), cmap="red")
-    ax[0].set_title(sec+" Day")
+    ax[0][0].plot(x0, y0, 'y', linewidth=1)
+    ax[0][0].scatter(trend.keys(), trend.values(), cmap="red")
+    ax[0][0].set_title(sec+" Day")
         
     #WeekDay data
-    ax[1].scatter(xwd, ywd, s=0.5)    
-    x0 = [min(xwd), max(ywd)]
+    ax[0][1].scatter(xwd, ywd, s=2)    
+    x0 = [min(xwd), max(xwd)]
     y0 = [0, 0]
-    ax[1].plot(x0, y0, 'y', linewidth=1)
-    ax[1].set_title(sec+" WeekDay")
+    ax[0][1].plot(x0, y0, 'y', linewidth=1)
+    ax[0][1].set_title(sec+" WeekDay")
 
-    plt.show()
+    #Negative / Positive 
+    ax[1][0].scatter(xd2["neg"], yd2["neg"], s=2)
+    x0 = [min(xd2["neg"]), max(xd2["neg"])]
+    y0 = [0, 0]
+    ax[1][0].plot(x0, y0, 'y', linewidth=1)    
+    ax[1][0].set_title(sec+" prev Day -")
+
+    ax[1][1].scatter(xd2["pos"], yd2["pos"], s=2)
+    x0 = [min(xd2["pos"]), max(xd2["pos"])]
+    y0 = [0, 0]
+    ax[1][1].plot(x0, y0, 'y', linewidth=1)    
+    ax[1][1].set_title(sec+" prev Day + ")
+    plt.show()    
 
 wait = input()
 
