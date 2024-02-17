@@ -69,11 +69,11 @@ def LoadSecurityCandle(argSecFileName):
         #    quit()
         #if num is None:
         if dateto==None:
-            dateto = BaseHelper.DateNow(SecCandle[2])
+            dateto = BaseHelper.DateNow(timeframe)
         if datefrom==None:
             if num == None:
                 num = 250
-            datefrom = BaseHelper.DateAdd(dateto, -num, SecCandle[2])
+            datefrom = BaseHelper.DateAdd(dateto, -num, timeframe)
             num = 250
         else:
             num = BaseHelper.DateInterval(datefrom, dateto, timeframe)
@@ -115,15 +115,25 @@ def LoadCandels(argSecurityCandleTable):
         
         candleFileName = f'DB\{security}_{timeframe}.txt'            
         if os.path.exists(candleFileName):
-            loadMode = 'L'  #local
+            loadMode = 'F'  #local File,Local
             if os.path.getsize(candleFileName) == 0:
-                loadMode = 'F'  #Finam
+                loadMode = 'W'  #Finam
         else:
-            loadMode = 'F'  #Finam
-        if flag in ['1','R']:   #перезагрузка
-            loadMode = 'F'  #Finam
+            loadMode = 'W'  #Finam Web
+        if flag in ['1','W']:   #перезагрузка
+            loadMode = 'W'  #Finam
        
-        if loadMode == 'F':
+        if loadMode == 'W':
+            #Check and redefine dates, LoadSecurityCandle()
+            if dateto==None:
+                dateto = BaseHelper.DateNow(timeframe)
+            if datefrom==None:
+                if num == None:
+                    num = 250
+                datefrom = BaseHelper.DateAdd(dateto, -num, timeframe)
+                num = 250
+            else:
+                num = BaseHelper.DateInterval(datefrom, dateto, timeframe)
 
             if timeframe in ["D1","W1"]:
                 datefrom = datefrom.date()
@@ -207,7 +217,7 @@ def LoadCandels(argSecurityCandleTable):
                 candleFile.close()
 
 
-        if loadMode == 'L':
+        if loadMode == 'F':
             candleFile = open(candleFileName, "r")
             num = 0 
             for line in candleFile:
