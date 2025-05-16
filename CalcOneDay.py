@@ -1,7 +1,7 @@
 #12/02/2024
 
 from datetime import datetime, timedelta
-import SecurityCandle
+import CandleMgt
 
 #Empty tables
 SecurityCandleTable = []
@@ -17,7 +17,7 @@ CandleTable = []
 SecurityCandleTable = [["ITEM","GC","D1",None,None,None,None],["CETS","USD000UTSTOM","D1",None,None,None,None]]
 
 #Load Candle table
-CandleTable = SecurityCandle.LoadCandels(SecurityCandleTable)
+CandleTable = CandleMgt.LoadCandels(SecurityCandleTable)
 
 #aggregate data x and y
 table = {}  #{day:[values]}

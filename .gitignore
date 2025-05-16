@@ -1,5 +1,8 @@
-DB/
+.venv/
 __pycache__/
+DB/
 *.txt
-test.py
-test2.py
+*.png
+*.html
+*.xlsx
+test*.py

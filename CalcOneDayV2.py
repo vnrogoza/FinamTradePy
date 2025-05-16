@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-import SecurityCandle
+import CandleMgt
 import statistics
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -17,8 +17,8 @@ CandleTable = []
 #SecurityCandleTable = [["ITEM","GC","D1",None,None,None,None]]
 SecurityCandleTable = [["ITEM","GC","D1",None,None,None,None],["CETS","USD000UTSTOM","D1",None,None,None,None]]
 
-#Load Candle table
-CandleTable = SecurityCandle.LoadCandels(SecurityCandleTable)
+#Load Candle tablepip
+CandleTable = CandleMgt.LoadCandels(SecurityCandleTable)
 
 CandleTable2 = {}  #{Sec:[Candles]}
 for candle in CandleTable:    
@@ -28,8 +28,8 @@ for candle in CandleTable:
     CandleTable2[sec].append(candle)
 
 
-for SecurityCandle in SecurityCandleTable: 
-    sec = SecurityCandle[1]
+for CandleMgt in SecurityCandleTable: 
+    sec = CandleMgt[1]
     CandleTable3 = CandleTable2[sec]
 
     #aggregate data x and y
