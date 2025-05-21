@@ -79,12 +79,6 @@ def LoadSecurityCandle(argSecFileName):
             num = BaseMgt.DateInterval(datefrom, dateto, timeframe)
         SecCandle = [board, security, timeframe, datefrom, dateto, num, flag]
         retSecurityCandleTable.append(SecCandle)    
-        
-    #file = open(secFileName,"w")
-    for line in SecurityCandleTable:
-        file.write(line[0]+';'+line[1]+';'+str(line[2])+';'+str(line[3])+';'+str(line[4])+';'+str(line[5])+';'+str(line[6])+'\n')    
-    #file.close()
-
     file.close()
     return retSecurityCandleTable
 

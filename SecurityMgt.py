@@ -84,7 +84,7 @@ def LoadAllSecurityList():
 
     print("Save data to DB...")
     counter = 0
-    dataParts = BaseMgt.SplitByLenth(resp.data.securities, 1000);
+    dataParts = BaseMgt.SplitListByLenth(resp.data.securities, 1000)
     connection = sqlite3.connect('DB\\finam.db')
     cursor = connection.cursor()    
     for part in dataParts:
