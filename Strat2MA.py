@@ -20,6 +20,21 @@ def OnRun(argTestCandle=None, argTestMode=False):
     candTable = 'Candles' 
     stCandTable = 'StgyCandles' 
     stValTable = 'StgyValues'    
+
+    def CreateOrder(Qty, Price):
+        if Qty == None:
+            return
+        #cursor = Kwargs["cursor"]
+        nonlocal cursor, stValTable, StgyCode, argTestMode
+        if argTestMode: 
+            if Qty==1:
+                sqlValues = [StgyCode, currTime, 'Buy', Qty, Price]
+            if Qty==-1:
+                sqlValues = [StgyCode, currTime, 'Sell', Qty, Price]
+            #cursor.execute('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value) VALUES (?, ?, ?, ?) '+
+            #' ON CONFLICT(Strategy, DateTime, Name) DO UPDATE SET Value=? ', sqlValues)
+            cursor.execute('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value, Value2) VALUES (?, ?, ?, ?, ?) ', sqlValues)
+
         
     connection = sqlite3.connect('DB\\finam.db')
     cursor = connection.cursor() 
@@ -43,7 +58,8 @@ def OnRun(argTestCandle=None, argTestMode=False):
     #stCandNum = cursor.rowcount
     connection.commit()
     
-    currTime = inData[0]    
+    currTime = inData[0]  #DateTime
+    currPrice = inData[4]  #Close
     sqlParams = [Class, Security]
     cursor.execute('SELECT Code, ShortName, Decimals, LotSize FROM Security WHERE Board=? AND Code=? ', sqlParams)
     secInfo = cursor.fetchone()  #->()
@@ -65,51 +81,52 @@ def OnRun(argTestCandle=None, argTestMode=False):
         ma1 = None
     if ma2 == 0:
         ma2 = None 
-    sqlValues = [[StgyCode, currTime, 'MA1', ma1, ma1], [StgyCode, currTime, 'MA2', ma2, ma2]]
-    #cursor.executemany('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value) VALUES (?, ?, ?, ?) ', sqlValues)
-    cursor.executemany('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value) VALUES (?, ?, ?, ?) '+
-        ' ON CONFLICT(Strategy, DateTime, Name) DO UPDATE SET Value=? ', sqlValues)
+    sqlValues = [StgyCode, currTime, 'MA', ma1, ma2]
+    cursor.execute('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value, Value2) VALUES (?, ?, ?, ?, ?) ', sqlValues)
+    #cursor.executemany('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value) VALUES (?, ?, ?, ?) '+
+    #    ' ON CONFLICT(Strategy, DateTime, Name) DO UPDATE SET Value=? ', sqlValues)
     connection.commit()
     #Curr Balance
     if argTestMode:
         sqlParams = [StgyCode, currTime, 'Bal']
-        cursor.execute('SELECT Value FROM '+stValTable+' WHERE Strategy=? AND DateTime=? AND Name=?', sqlParams)
-        currBalance = cursor.fetchone()
-        if currBalance is None:
-            currBalance=0
+        #cursor.execute('SELECT Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND DateTime=? AND Name=?', sqlParams)
+        cursor.execute('SELECT Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND DateTime<? AND Name=? ORDER BY DateTime DESC LIMIT 1', sqlParams)
+        result  = cursor.fetchone()
+        if result is None:
+            currBalance = 0
+            currBalPrice = 0
+        else:    
+            currBalance = result[0]
+            currBalPrice = result[1]
 
     #Trade Logic
     sqlParams = [StgyCode, Security, Period]
     cursor.execute('SELECT "DateTime", Open, High, Low, Close, Volume FROM '+stCandTable+' WHERE Strategy=? AND Security=? AND Timeframe=? ORDER BY "DateTime" DESC LIMIT 22', sqlParams)    
     stData = cursor.fetchall()  #->[()]
     if len(stData)>=ma2period+1:
-        #MA Cross
+        #STRATEGY 2 MA Cross
         #sqlParams = [StgyCode, currTime, 'MA1']
         #cursor.execute('SELECT Value FROM '+stValTable+' WHERE Strategy=? AND DateTime=? AND Name=?', sqlParams)
-        sqlParams = [StgyCode, 'MA1']
-        cursor.execute('SELECT Value FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" DESC LIMIT 2', sqlParams)
-        ma1val = cursor.fetchall()
-        sqlParams = [StgyCode, 'MA2']
-        cursor.execute('SELECT Value FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" DESC LIMIT 2', sqlParams)
-        ma2val = cursor.fetchall()    
-        if ma1val[1]<ma2val[1] and ma1val[0]>ma2val[0] and currBalance==0: 
-            CreateOrder(1, StgyCode=StgyCode, currTime=currTime, stValTable=stValTable, cursor=cursor, TestMode=argTestMode)  #BuyOrder
-        if ma1val[1]>ma2val[1] and ma1val[0]<ma2val[0] and currBalance>0:
-            CreateOrder(-1, StgyCode=StgyCode, currTime=currTime, stValTable=stValTable, cursor=cursor, TestMode=argTestMode)  #SellOrder
+        sqlParams = [StgyCode, 'MA']
+        cursor.execute('SELECT Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" DESC LIMIT 2', sqlParams)
+        maVal = cursor.fetchall()        
+        #if ma1val[1]<ma2val[1] and ma1val[0]>ma2val[0] and currBalance==0: 
+        if maVal[1][0]<maVal[1][1] and maVal[0][0]>maVal[0][1] and currBalance==0: 
+            #CreateOrder(1, StgyCode=StgyCode, currTime=currTime, stValTable=stValTable, cursor=cursor, TestMode=argTestMode)  #BuyOrder
+            CreateOrder(1, currPrice)  #BuyOrder
+            currBalance = 1
+            currBalPrice = currPrice
+        if maVal[1][0]>maVal[1][1] and maVal[0][0]<maVal[0][1] and currBalance>0:
+            #CreateOrder(-1, StgyCode=StgyCode, currTime=currTime, stValTable=stValTable, cursor=cursor, TestMode=argTestMode)  #SellOrder            
+            CreateOrder(-1, currPrice)  #SellOrder         
+            currBalance = 0
+            currBalPrice = 0
+        sqlValues = [StgyCode, currTime, 'Bal', currBalance, currBalPrice]
+        cursor.execute('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value, Value2) VALUES (?, ?, ?, ?, ?) ', sqlValues)
+
         connection.commit()
         connection.close()
 
-def CreateOrder(Qty, **Kwargs):
-    if Qty == None:
-        return
-    cursor = Kwargs["cursor"]
-    if Kwargs["TestMode"]: 
-        if Qty==1:
-            sqlValues = [Kwargs["StgyCode"], Kwargs["currTime"], 'Bal', Qty, Qty]
-        if Qty==-1:
-            sqlValues = [Kwargs["StgyCode"], Kwargs["currTime"], 'Bal', 0, 0]
-        cursor.execute('INSERT INTO '+Kwargs["stValTable"]+' (Strategy, DateTime, Name, Value) VALUES (?, ?, ?, ?) '+
-        ' ON CONFLICT(Strategy, DateTime, Name) DO UPDATE SET Value=? ', sqlValues)
 
 
 def Test():
@@ -154,14 +171,52 @@ def CreateReport(argTestMode=False):
     stData = cursor.fetchall()    
     reportData = [list(item) for item in stData]
     HtmlReportMgt.AnychartAddChart(data=reportData, security=Security)
-    cursor.execute('SELECT "DateTime", Value FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" ', [StgyCode, 'MA1'])
+    #Lines
+    cursor.execute('SELECT "DateTime", Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" ', [StgyCode, 'MA'])
     valData = cursor.fetchall()
-    valData = [list(item) for item in valData]    
-    HtmlReportMgt.AnychartAddLine(id=1, data=valData)
-    cursor.execute('SELECT "DateTime", Value FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" ', [StgyCode, 'MA2'])
-    valData = cursor.fetchall()            
-    valData = [list(item) for item in valData]
-    HtmlReportMgt.AnychartAddLine(id=2, data=valData)
+    valData1 = [list([item[0], item[1]]) for item in valData]
+    HtmlReportMgt.AnychartAddLine(id=1, data=valData1, color="#ff3300")
+    valData2 = [list([item[0], item[2]]) for item in valData]
+    HtmlReportMgt.AnychartAddLine(id=2, data=valData2, color="#4444ff")
+    #Orders
+    id = 0
+    cursor.execute('SELECT "DateTime", Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" ', [StgyCode, 'Buy'])
+    valData = cursor.fetchall()
+    for item in valData:
+        HtmlReportMgt.AnychartAddOrder(id=id, time=item[0], price=item[2], type='Buy')
+        id += 1
+    cursor.execute('SELECT "DateTime", Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" ', [StgyCode, 'Sell'])
+    valData = cursor.fetchall()
+    for item in valData:
+        HtmlReportMgt.AnychartAddOrder(id=id, time=item[0], price=item[2], type='Sell')
+        id += 1
+    #Trades
+    cursor.execute('SELECT "DateTime", Name, Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND Name IN ("Buy","Sell","Bal") ORDER BY "DateTime" ', StgyCode)
+    valData = cursor.fetchall()
+    balQty = 0
+    balAmound = 0
+    tradeQty = 0
+    tradeAmount = 0
+    for item in valData:
+        name = item[1]
+        qty = int(item[2])
+        price = item[3]
+        if name == 'Bal':
+            bal = qty
+        if name == 'Buy':
+            tradeQty = qty
+            tradeAmount = price
+            '''
+            --SELECT * FROM TestStgyValues WHERE Name IN ("Buy","Sell","Bal") ORDER BY "DateTime"
+SELECT V1.DateTime, V1.Name, V1.Value, V1.Value2, V2.Name, V2.Value, V2.Value2 FROM TestStgyValues V1 
+  LEFT JOIN TestStgyValues V2 ON V2.Strategy=V1.Strategy AND V2.DateTime=V1.DateTime AND V2.Name IN ("Buy","Sell")
+  WHERE V1.Strategy="2MA_01" AND V1.Name = "Bal"
+  --ORDER BY "DateTime"
+            '''
+
+    #HtmlReportMgt.AnychartAddOrder(id=id, time=item[0], price=item[2], type='Sell')
+    
+
 
     connection.close()
     HtmlReportMgt.AnychartFinish("График Сбербанка")
