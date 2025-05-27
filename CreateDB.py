@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS "StgyValues" (
 	"DateTime"	TEXT NOT NULL,
 	"Name"	TEXT NOT NULL,
 	"Value"	REAL,
+    "Value2" REAL,
 	PRIMARY KEY("Strategy","DateTime","Name")
 );
 ''')
@@ -119,6 +120,7 @@ CREATE TABLE IF NOT EXISTS "TestStgyValues" (
 	"DateTime"	TEXT NOT NULL,
 	"Name"	TEXT NOT NULL,
 	"Value"	REAL,
+    "Value2"	REAL,
 	PRIMARY KEY("Strategy","DateTime","Name")
 );
 ''')

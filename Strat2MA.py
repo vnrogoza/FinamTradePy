@@ -4,7 +4,7 @@
 #CreateReport() - формирование отчёта
 import sqlite3, HtmlReportMgt
 
-def OnRun(argTestCandle=None, argTestMode=False):
+def OnRun(argTestCandle=None, TestMode=False):
     #argTestCandle=() - use it, argTestCandle=None - from table
     #argTestMode - table names    
     #Init
@@ -14,6 +14,7 @@ def OnRun(argTestCandle=None, argTestMode=False):
     Client="S7912/S7912"
     Account="L01+00000F00"
     Security="SBER"
+    orderQty = 10
     Period = "H1"
     ma1period = 9
     ma2period = 21
@@ -25,11 +26,11 @@ def OnRun(argTestCandle=None, argTestMode=False):
         if Qty == None:
             return
         #cursor = Kwargs["cursor"]
-        nonlocal cursor, stValTable, StgyCode, argTestMode
-        if argTestMode: 
-            if Qty==1:
+        nonlocal cursor, stValTable, StgyCode, TestMode
+        if TestMode: 
+            if Qty>0:
                 sqlValues = [StgyCode, currTime, 'Buy', Qty, Price]
-            if Qty==-1:
+            if Qty<0:
                 sqlValues = [StgyCode, currTime, 'Sell', Qty, Price]
             #cursor.execute('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value) VALUES (?, ?, ?, ?) '+
             #' ON CONFLICT(Strategy, DateTime, Name) DO UPDATE SET Value=? ', sqlValues)
@@ -40,7 +41,7 @@ def OnRun(argTestCandle=None, argTestMode=False):
     cursor = connection.cursor() 
         
     #LastCandle   
-    if argTestMode:
+    if TestMode:
         stCandTable = 'TestStgyCandles'
         stValTable = 'TestStgyValues'        
     if argTestCandle == None:
@@ -87,7 +88,7 @@ def OnRun(argTestCandle=None, argTestMode=False):
     #    ' ON CONFLICT(Strategy, DateTime, Name) DO UPDATE SET Value=? ', sqlValues)
     connection.commit()
     #Curr Balance
-    if argTestMode:
+    if TestMode:
         sqlParams = [StgyCode, currTime, 'Bal']
         #cursor.execute('SELECT Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND DateTime=? AND Name=?', sqlParams)
         cursor.execute('SELECT Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND DateTime<? AND Name=? ORDER BY DateTime DESC LIMIT 1', sqlParams)
@@ -109,18 +110,20 @@ def OnRun(argTestCandle=None, argTestMode=False):
         #cursor.execute('SELECT Value FROM '+stValTable+' WHERE Strategy=? AND DateTime=? AND Name=?', sqlParams)
         sqlParams = [StgyCode, 'MA']
         cursor.execute('SELECT Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND Name=? ORDER BY "DateTime" DESC LIMIT 2', sqlParams)
-        maVal = cursor.fetchall()        
-        #if ma1val[1]<ma2val[1] and ma1val[0]>ma2val[0] and currBalance==0: 
+        maVal = cursor.fetchall()                
+        #Long Open
         if maVal[1][0]<maVal[1][1] and maVal[0][0]>maVal[0][1] and currBalance==0: 
             #CreateOrder(1, StgyCode=StgyCode, currTime=currTime, stValTable=stValTable, cursor=cursor, TestMode=argTestMode)  #BuyOrder
-            CreateOrder(1, currPrice)  #BuyOrder
-            currBalance = 1
+            CreateOrder(orderQty, currPrice)  #BuyOrder
+            currBalance = orderQty
             currBalPrice = currPrice
+        #Long Close
         if maVal[1][0]>maVal[1][1] and maVal[0][0]<maVal[0][1] and currBalance>0:
             #CreateOrder(-1, StgyCode=StgyCode, currTime=currTime, stValTable=stValTable, cursor=cursor, TestMode=argTestMode)  #SellOrder            
-            CreateOrder(-1, currPrice)  #SellOrder         
+            CreateOrder(-currBalance, currPrice)  #SellOrder 
             currBalance = 0
             currBalPrice = 0
+            
         sqlValues = [StgyCode, currTime, 'Bal', currBalance, currBalPrice]
         cursor.execute('INSERT INTO '+stValTable+' (Strategy, DateTime, Name, Value, Value2) VALUES (?, ?, ?, ?, ?) ', sqlValues)
 
@@ -143,26 +146,30 @@ def Test():
     connection.commit()
     sqlParams = [Security, Period]
     #LIMIT 200
-    cursor.execute('SELECT "DateTime", Open, High, Low, Close, Volume FROM '+candTable+' WHERE Security=? AND Timeframe=? ORDER BY "DateTime"  LIMIT 200 ', sqlParams)
+    cursor.execute('SELECT "DateTime", Open, High, Low, Close, Volume FROM '+candTable+' WHERE Security=? AND Timeframe=? ORDER BY "DateTime"  LIMIT 1000 ', sqlParams)
     candleData = cursor.fetchall()    
-    connection.close()
+    connection.close()    
     for candle in candleData:
-        OnRun(argTestCandle=candle, argTestMode=True)
+        OnRun(argTestCandle=candle, TestMode=True)
 
-
-def CreateReport(argTestMode=False):
+        
+def CreateReport(TestMode=False, StartEquity=10000):
     StgyCode = '2MA_01'
+    Class="TQBR"
     Security="SBER"
     Period = "H1"
     ma1period = 9
     ma2period = 21    
     stCandTable = 'StgyCandles' 
     stValTable = 'StgyValues'
-    if argTestMode:
+    if TestMode:
         stCandTable = 'TestStgyCandles'
         stValTable = 'TestStgyValues'
     connection = sqlite3.connect('DB\\finam.db')
     cursor = connection.cursor() 
+    sqlParams = [Class, Security]
+    cursor.execute('SELECT Code, ShortName, Decimals, LotSize FROM Security WHERE Board=? AND Code=? ', sqlParams)
+    secInfo = cursor.fetchone()  #->()
         
     HtmlReportMgt.AnychartStart(StgyCode+' '+Security+' '+Period)  #Title
     #Data
@@ -191,42 +198,66 @@ def CreateReport(argTestMode=False):
         HtmlReportMgt.AnychartAddOrder(id=id, time=item[0], price=item[2], type='Sell')
         id += 1
     #Trades
-    cursor.execute('SELECT "DateTime", Name, Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND Name IN ("Buy","Sell","Bal") ORDER BY "DateTime" ', StgyCode)
+    #cursor.execute('SELECT "DateTime", Name, Value, Value2 FROM '+stValTable+' WHERE Strategy=? AND Name IN ("Buy","Sell","Bal") ORDER BY "DateTime" ', [StgyCode])
+    cursor.execute('SELECT V1."DateTime", V1.Name, V1.Value, V1.Value2, V2.Name, V2.Value, V2.Value2 FROM '+stValTable+' V1 '+
+        ' LEFT JOIN TestStgyValues V2 ON V2.Strategy=V1.Strategy AND V2."DateTime"=V1."DateTime" AND V2.Name IN ("Buy","Sell") '+
+        ' WHERE V1.Strategy=? AND V1.Name = "Bal" ORDER BY V1."DateTime" ', [StgyCode] )
     valData = cursor.fetchall()
-    balQty = 0
-    balAmound = 0
-    tradeQty = 0
-    tradeAmount = 0
-    for item in valData:
-        name = item[1]
-        qty = int(item[2])
-        price = item[3]
-        if name == 'Bal':
-            bal = qty
-        if name == 'Buy':
-            tradeQty = qty
-            tradeAmount = price
-            '''
-            --SELECT * FROM TestStgyValues WHERE Name IN ("Buy","Sell","Bal") ORDER BY "DateTime"
-SELECT V1.DateTime, V1.Name, V1.Value, V1.Value2, V2.Name, V2.Value, V2.Value2 FROM TestStgyValues V1 
-  LEFT JOIN TestStgyValues V2 ON V2.Strategy=V1.Strategy AND V2.DateTime=V1.DateTime AND V2.Name IN ("Buy","Sell")
-  WHERE V1.Strategy="2MA_01" AND V1.Name = "Bal"
-  --ORDER BY "DateTime"
-            '''
-
-    #HtmlReportMgt.AnychartAddOrder(id=id, time=item[0], price=item[2], type='Sell')
-    
-
-
     connection.close()
-    HtmlReportMgt.AnychartFinish("График Сбербанка")
+    balQty = 0
+    balAmound = 0    
+    tradeAmount = 0
+    tradeData=[]
+    equity = StartEquity
+    equityMax = 0
+    equityMin = StartEquity
+    StartEquity
+    equityData=[]
+    for item in valData:  
+        #every time        
+        balQty = int(item[2])  #0/1
+        balPrice = item[3]  #0/123
+        order =  item[4]  #null/Buy/Sell
+        orderQty = item[5]  #null/1/-1
+        orderPrice = item[6]  #null/123
+        if order=='Buy' and balQty>0:
+            balAmound = balQty * balPrice
+        if order=='Sell' and balQty==0:
+            tradeAmount = abs(orderQty)*orderPrice - balAmound
+            tradeAmount = round(tradeAmount, secInfo[2])
+            equity += tradeAmount            
+            if tradeAmount>=0:
+                tradeData.append({"x":item[0], "value":tradeAmount, "value2":None})
+            else:
+                tradeData.append({"x":item[0], "value":None, "value2":tradeAmount})    
+            #[{x:'2025-04-04 23:00', value:105000}]                
+            equityData.append({"x":item[0], "value":equity})
+            if equity < equityMin:
+                equityMin = equity
+            if equity > equityMax:
+                equityMax = equity
+    HtmlReportMgt.AnychartAddTrades(id=2, data=tradeData)    
+    HtmlReportMgt.AnychartEndChart(StgyCode+'  '+Security+'  '+Period)
+    #Equity
+    HtmlReportMgt.AnychartAddColumnChart(id=2, data=equityData, maxY=equityMax*1.01, minY=equityMin*0.99)
+    HtmlReportMgt.Finish()
     HtmlReportMgt.Show()
 
 
 if __name__ == "__main__":
-    #OnRun()
-    Test()
-    CreateReport(argTestMode=True)
+    #OnRun()    
+    Test()    
+    CreateReport(TestMode=True)
+    
+    #import time
+    #start = time.perf_counter()
+    #Test()
+    #next = time.perf_counter()
+    #print(next-start)
+    #start = next
+    
+    
+    
 
 
 

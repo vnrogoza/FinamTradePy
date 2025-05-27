@@ -1,6 +1,7 @@
 .venv/
 __pycache__/
 DB/
+BAK/
 *.txt
 *.png
 *.html

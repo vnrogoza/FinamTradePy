@@ -187,7 +187,7 @@ def AnychartAddOrder(**kwargs):
     time = kwargs['time']
     price = kwargs['price']
     type = kwargs['type']
-    size = 10
+    size = 15
     offset = 10
     if type == 'Buy':
       color = '#00ff00 0.5'
@@ -218,36 +218,79 @@ def AnychartAddTrades(**kwargs):
     global htmlReport    
     id = kwargs['id']
     data = kwargs['data']
+    data = str(data).replace('None','null')
     htmlAdd = '''\n\n      //COLUMN CHART (Trades)
 	  table$id = anychart.data.table('x');
 	  table$id.addData( $data );
 	  mapping$id_pos = table$id.mapAs({x:'x', value:'value'});
 	  var series$id_pos = chart.plot($id).column(mapping$id_pos);
-	  series$id.name("PL");
+	  series$id_pos.name("Приб");
 	  mapping$id_neg = table$id.mapAs({x:'x', value:'value2'});
 	  var series$id_neg = chart.plot($id).column(mapping$id_neg);
+	  series$id_neg.name("Убыт");
 	  series$id_neg.fill("#ff0000")
-	  chart.plot($id).height(100)
+	  var plot$id = chart.plot($id)
+	  plot$id.height(150)
+	  //plot$id.yGrid().enabled(true)
+	  var controller$id = plot$id.annotations();  
+	  controller$id.horizontalLine({valueAnchor:0, stroke:"#000000"});'''
+    htmlAdd = ( htmlAdd
+        .replace('$id', str(id))
+        .replace('$data', data)
+    )
+    htmlReport += htmlAdd
+
+def AnychartAddColumnChart(**kwargs):
+    global htmlReport    
+    id = kwargs['id']
+    data = kwargs['data']
+    data = str(data).replace('None','null')
+    ymax = kwargs['maxY']
+    ymin = kwargs['minY']
+    htmlAdd = '''\n  <div id="container$id"></div>
+  <style>#container$id { width: 1000; height: 400; margin: 0; padding: 0; }</style>
+  <script src="https://cdn.anychart.com/releases/8.13.0/js/anychart-base.min.js"></script>
+  <script src="https://cdn.anychart.com/releases/8.13.0/js/anychart-exports.min.js"></script>
+  <script src="https://cdn.anychart.com/releases/8.13.0/js/anychart-ui.min.js"></script>
+  <script type="text/javascript">
+  //COLUMN CHART (Equity)
+	anychart.onDocumentReady(function () { 
+    //[{x:'2025-04-04 23:00', value:105000}]
+    var data = $data 	  	    
+    var chart = anychart.column();
+    var series = chart.column(data);
+    chart.title("Оценка портфеля");
+    chart.xAxis().title("Время");
+    chart.yAxis().title("Сумма");
+    chart.barGroupsPadding(0.1);	
+    chart.yScale().maximum($ymax);
+    chart.yScale().minimum($ymin);
+    chart.container("container$id");
+    chart.draw();
+	});
+  </script>
     '''
     htmlAdd = ( htmlAdd
-        .replace('$id', str(id)) 
-        .replace('$time', str(data))
+        .replace('$id', str(id))
+        .replace('$data', data)
+        .replace('$ymax', str(ymax))
+        .replace('$ymin', str(ymin))
     )
     htmlReport += htmlAdd
     
 
-def AnychartFinish(title):
+def AnychartEndChart(title):
     global htmlReport 
-    htmlAdd = '''\n      
-      chart.title(" $title ");
+    htmlAdd = '''\n\n\n      chart.title(" $title ");
       chart.container("container");
       chart.draw();
     });   
-  </script>
- </body>
-</html>
-
-    '''
+  </script>'''    
     htmlAdd = htmlAdd.replace("$title", title)
     htmlReport += htmlAdd
-    #return htmlReport
+    
+
+def AnychartFinish():
+    global htmlReport 
+    htmlAdd = '\n </body>\n</html>'    
+    htmlReport += htmlAdd
