@@ -1,11 +1,50 @@
 title = "Привет"
 def start():
-    print("Starting...")
+  print("Starting...")
 
-def GetToken():
+def LoadToken():
   file = open("token.txt", "r")
   token = file.readline()
   return token
+
+def LoadJwtToken():
+  file = open("tokenjwt.txt", "r")
+  date = file.readline()
+  token = file.readline()
+  file.close
+  return date,token
+
+def SaveJwtToken(date, token):
+  file = open("tokenjwt.txt", "w")  
+  file.write(date)
+  file.write(token)
+  file.close
+
+def RefreshToken(client):    
+    from datetime import datetime 
+    if client == None:
+      raise('Client is not innitialized')      
+    
+    renew = False
+    validTime = None    
+    client.access_tokens.get_jwt_token()
+    try:
+        resp = client.access_tokens.get_jwt_token_details()        
+        validTime = Utc2Loc(str(resp.expiresAt)) 
+        nowTime = str(datetime.now())
+        if nowTime > validTime:
+            renew = True
+    except Exception as e:
+        if str(e).find('Token is expired'):
+            renew = True
+        else:
+            raise(e)        
+    if renew:
+        print(f'Token is expired ({validTime}). New token released')
+        client.access_tokens.set_jwt_token()
+    else:
+        print(f'Token is valid till {validTime}')
+
 
 def DateInterval(argDatetime0, argDatetime1, argTimeFrame):
   from datetime import datetime, timedelta
@@ -152,7 +191,8 @@ def Loc2Utc(argDateTime):
   if len(argDateTime)>10:    
     T = datetime.fromisoformat(argDateTime)
     T = T.astimezone(timezone.utc)  #2025-05-09 09:45:39+00:00  
-    T = str(T)[:16]
+    T = str(T).replace(' ','')  #2025-06-0117:47:00+00:00
+    T = T[:10]+'T'+T[10:18]+'Z'
     return T
   return argDateTime
 

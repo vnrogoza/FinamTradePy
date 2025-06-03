@@ -2,15 +2,122 @@
 import os
 import asyncio
 
-from finam_trade_api.client import Client
-from finam_trade_api.candles.model import (DayCandlesRequestModel, DayInterval, IntraDayCandlesRequestModel, IntraDayInterval)
+#from finam_trade_api.client import Client
+#from finam_trade_api.candles.model import (DayCandlesRequestModel, DayInterval, IntraDayCandlesRequestModel, IntraDayInterval)
+from finam_trade_api import Client
+from finam_trade_api import TokenManager
+from finam_trade_api.instruments.model import BarsRequest, TimeFrame
 import BaseMgt
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 
 
-token = BaseMgt.GetToken()
-#Board,Sec,Tf,Num,DtFrom,DtTo
+#token = BaseMgt.LoadToken()
 
+#NEW VERSION - API V2 Helper
+async def GetCandles(Board, Security, TimeFrame, DateFrom, DateTo):
+    #client = Client(TokenManager(token))
+    #await client.access_tokens.set_jwt_token()
+    token = BaseMgt.LoadToken()
+    client = Client(TokenManager(token))
+    await BaseMgt.RefreshToken()
+    TimeFrameConverter ={"M5":"TIME_FRAME_M5","M15":"TIME_FRAME_M15","H1":"TIME_FRAME_H1","D1":"TIME_FRAME_D","W1":"TIME_FRAME_W"}
+    DateFrom = BaseMgt.Loc2Utc(DateFrom)
+    DateTo = BaseMgt.Loc2Utc(DateTo)
+    params = BarsRequest(
+        symbol= Security+'@'+Board,
+        start_time=DateFrom,
+        end_time=DateTo,
+        timeframe=TimeFrameConverter[TimeFrame]
+    )
+    result =  await client.instruments.get_bars(params)    
+    return result.bars
+
+#NEW - Загрузка свечек из АПИ Финама 
+def LoadCandels(argSecurityCandleTable):
+
+    retCandleTable = []
+    idx = 0
+    for SecCandle in argSecurityCandleTable:
+        #SecCandle = [board, security, timeframe, datefrom, dateto]
+        loadMode = ''
+        board = SecCandle[0]
+        security = SecCandle[1]
+        timeframe = SecCandle[2]    
+        datefrom = SecCandle[3]
+        dateto = SecCandle[4]
+        quantity = SecCandle[5]
+        flag = SecCandle[6]               
+        if board in ['', None]:
+            print('Board not specified')
+            quit()
+        if security in ['', None]:
+            print('Security not specified')
+            quit()
+        if timeframe in ['', None]:
+            print('Timeframe not specified')
+            quit()
+        
+        candleFileName = f'DB\{security}_{timeframe}.txt'
+        if os.path.exists(candleFileName):
+            loadMode = 'F'  #local File,Local
+            if os.path.getsize(candleFileName) == 0:
+                loadMode = 'W'  #Finam
+        else:
+            loadMode = 'W'  #Finam Web
+        if flag in ['1','W']:   #перезагрузка
+            loadMode = 'W'  #Finam
+
+        if loadMode == 'W':
+            #Check and redefine dates, LoadSecurityCandle()    
+            num = 0
+            intervals = BaseMgt.GetDateIntervals(datefrom, dateto, timeframe, quantity)
+            for interval in intervals:                
+                candles = asyncio.run( GetCandles(board, security, timeframe, interval["DateFrom"], interval["DateTo"]) ) 
+                num += len(candles)
+                for line in candles:                    
+                    if timeframe in ["D1","W1"]:
+                        T = str(line.date)
+                    else:
+                        T = BaseMgt.Utc2Loc(str(line.timestamp))
+                    O = line.open.value
+                    H = line.high.value
+                    L = line.low.value
+                    C = line.close.value
+                    V = line.volume.value
+                    candle = [security, timeframe, T, O, H, L, C, V]
+                    retCandleTable.append(candle) 
+
+        if loadMode == 'F':
+            candleFile = open(candleFileName, "r")
+            num = 0 
+            for line in candleFile:
+                num += 1
+                #security, timeframe
+                items = line.rstrip().split(";")
+                security = items[0]
+                timeframe = items[1]
+                #T = datetime.fromisoformat(items[2])
+                T = items[2]
+                O = float(items[3])
+                H = float(items[4])
+                L = float(items[5])
+                C = float(items[6])
+                V = int(items[7])
+                candle = [security, timeframe, T, O, H, L, C, V]
+                #candleFile.write(line.open.num+';'+line.high+';'+line.low+';'+line.low+'\n') 
+                retCandleTable.append(candle) 
+            candleFile.close()
+
+        #update SecurityCandleTable        
+        argSecurityCandleTable[idx][3] = datefrom
+        argSecurityCandleTable[idx][4] = dateto    
+        argSecurityCandleTable[idx][5] = num
+        argSecurityCandleTable[idx][6] = ''  #flag 
+        idx += 1
+    return retCandleTable
+
+
+#OLD VERSION - API V1 Helper
 async def get_day_candles(argBoard, argSecurity, argTimeFrame, argCount, argDateFrom, argDateTo):
   client = Client(token)
   params = DayCandlesRequestModel(
@@ -23,7 +130,7 @@ async def get_day_candles(argBoard, argSecurity, argTimeFrame, argCount, argDate
   result = await client.candles.get_day_candles(params)
   return result
 
-
+#OLD VERSION - API V1 Helper
 async def get_in_day_candles(argBoard, argSecurity, argTimeFrame, argCount, argDateFrom, argDateTo):
     client = Client(token)
     params = IntraDayCandlesRequestModel(
@@ -35,6 +142,7 @@ async def get_in_day_candles(argBoard, argSecurity, argTimeFrame, argCount, argD
         )
     return await client.candles.get_in_day_candles(params)
 
+#OLD VER - Загрузка свечек из файла
 def LoadSecurityCandle(argSecFileName):
     if (argSecFileName==None) or (argSecFileName==None):
         print('File not specified')
@@ -82,7 +190,8 @@ def LoadSecurityCandle(argSecFileName):
     file.close()
     return retSecurityCandleTable
 
-def LoadCandels(argSecurityCandleTable):
+#OLD VER - Загрузка свечек из АПИ Финама
+def LoadCandelsOld(argSecurityCandleTable):
     #пишет в файлы свечки Candles
     #asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     retCandleTable = []

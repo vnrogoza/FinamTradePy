@@ -13,12 +13,14 @@ token = BaseMgt.GetToken()
 client = Client(token)
 SecurityList = []
 
+#OLD VERSION - API V1 Helper
 async def get_all_data():
     return await client.securities.get_data()
-
+#OLD VERSION - API V1 Helper
 async def get_data_by_code(code: str):
     return await client.securities.get_data(code)
 
+#OLD  - Загрузка списка инструментов из файла или АПИ Финам
 def GetSecurityList():
     #TQBR;GAZP;10.0;2
     filePath = "DB\SecurityList.txt"        
@@ -54,6 +56,7 @@ def GetSecurityList():
         f.close
     return secList
 
+#OLD  - Загрузка списка всех инструментов из АПИ Финам и сохранение в файл
 def GetAllSecurityList():    
     filePath = "DB\AllSecurityList.txt"        
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -105,3 +108,4 @@ def LoadAllSecurityList():
 if __name__ == "__main__":    
     #GetAllSecurityList()
     LoadAllSecurityList()
+    

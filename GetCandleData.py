@@ -1,5 +1,5 @@
 #Загрузка исторических данных (свечек) в БД
-import CandleMgt, BaseMgt
+import MarketMgt, BaseMgt
 import sqlite3
 
 #Empty tables
@@ -31,7 +31,7 @@ if len(SecurityCandleTable) == 0:
     quit()
 
 #Load Candle tablepip
-CandleTable = CandleMgt.LoadCandels(SecurityCandleTable)
+CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
 
 
 '''

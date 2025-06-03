@@ -2,6 +2,7 @@
 __pycache__/
 DB/
 BAK/
+TXT/
 *.txt
 *.png
 *.html
