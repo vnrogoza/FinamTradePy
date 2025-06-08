@@ -15,11 +15,11 @@ from datetime import datetime
 
 #NEW VERSION - API V2 Helper
 async def GetCandles(Board, Security, TimeFrame, DateFrom, DateTo):
+    
+    #token = BaseMgt.LoadToken()
     #client = Client(TokenManager(token))
-    #await client.access_tokens.set_jwt_token()
-    token = BaseMgt.LoadToken()
-    client = Client(TokenManager(token))
-    await BaseMgt.RefreshToken()
+    #await BaseMgt.RefreshToken()
+    client = await BaseMgt.GetClient()
     TimeFrameConverter ={"M5":"TIME_FRAME_M5","M15":"TIME_FRAME_M15","H1":"TIME_FRAME_H1","D1":"TIME_FRAME_D","W1":"TIME_FRAME_W"}
     DateFrom = BaseMgt.Loc2Utc(DateFrom)
     DateTo = BaseMgt.Loc2Utc(DateTo)

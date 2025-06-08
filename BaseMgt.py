@@ -9,41 +9,46 @@ def LoadToken():
 
 def LoadJwtToken():
   file = open("tokenjwt.txt", "r")
-  date = file.readline()
+  #date = file.readline()
+  #token = file.readline()
   token = file.readline()
+  pos = token.find(';')
+  date = token[:pos]
+  token = token[pos+1:]
   file.close
   return date,token
 
 def SaveJwtToken(date, token):
   file = open("tokenjwt.txt", "w")  
-  file.write(date)
-  file.write(token)
+  file.write(date+';'+token)
+  file.flush()
   file.close
 
-def RefreshToken(client):    
-    from datetime import datetime 
-    if client == None:
-      raise('Client is not innitialized')      
-    
-    renew = False
-    validTime = None    
-    client.access_tokens.get_jwt_token()
-    try:
-        resp = client.access_tokens.get_jwt_token_details()        
-        validTime = Utc2Loc(str(resp.expiresAt)) 
-        nowTime = str(datetime.now())
-        if nowTime > validTime:
-            renew = True
-    except Exception as e:
-        if str(e).find('Token is expired'):
-            renew = True
-        else:
-            raise(e)        
-    if renew:
-        print(f'Token is expired ({validTime}). New token released')
-        client.access_tokens.set_jwt_token()
+async def GetClient():
+  from datetime import datetime
+  import asyncio
+  from finam_trade_api import Client
+  from finam_trade_api import TokenManager
+  import asyncio
+  token = LoadToken()    
+  client = Client(TokenManager(token))
+  jwt_date, jwt_token = LoadJwtToken()
+  refresh = False
+  if (jwt_date in (None, '')) or (jwt_token in (None, '')):
+    refresh = True
+  else:
+    nowTime = str(datetime.now())
+    if nowTime > jwt_date:
+      refresh = True
+    if refresh:
+      await client.access_tokens.reset_jwt_token()
+      resp = await client.access_tokens.get_jwt_token_details()
+      jwt_date = Utc2Loc(str(resp.expiresAt)) 
+      jwt_token = client.access_tokens.get_jwt_token()      
+      SaveJwtToken(jwt_date, jwt_token)
     else:
-        print(f'Token is valid till {validTime}')
+      client.access_tokens.set_jwt_token(jwt_token)
+  return client
 
 
 def DateInterval(argDatetime0, argDatetime1, argTimeFrame):
