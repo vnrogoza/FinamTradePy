@@ -1,8 +1,10 @@
 .venv/
+.data/
 __pycache__/
 DB/
 BAK/
 TXT/
+Test/
 *.txt
 *.png
 *.html

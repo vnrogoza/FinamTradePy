@@ -212,7 +212,7 @@ def CreateReport(TestMode=False, StartEquity=10000):
     equityMax = 0
     equityMin = StartEquity
     StartEquity
-    equityData=[]
+    equityData=[]    
     for item in valData:  
         #every time        
         balQty = int(item[2])  #0/1

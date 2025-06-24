@@ -56,6 +56,9 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
+    account_id = '1908434'
+    security = 'LQDT'
     #asyncio.run(main())
-    res = asyncio.run(GetAccountPositions(account_id))
+    #res = asyncio.run(GetAccountPositions(account_id))
+    res = GetCurrentPosition(security_id=security, account_id=account_id)
     print(res)
