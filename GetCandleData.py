@@ -1,3 +1,62 @@
+#Загрузка свечек за период и вывод на график
+def Test():
+    import MarketMgt, HtmlReportMgt
+
+    SecurityCandleTable = [["MISX","SBER","D1",'2025-03-01','2025-03-31',None,'W']]
+    CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
+    data = []
+    for candle in CandleTable:            
+        item = [candle[2], candle[5], candle[3], candle[6], candle[4]]
+        data.append(item)
+
+    HtmlReportMgt.Start()
+    HtmlReportMgt.AddChart("chart_div", data, 'CNY_RUB')
+    HtmlReportMgt.Finish()
+    HtmlReportMgt.Show()
+
+    
+
+def GetCandleDataV2(timeframe=None):
+    #Загрузка исторических данных (свечек) в БД
+    import MarketMgt, BaseMgt
+    import sqlite3
+
+    #Empty tables
+    SecurityCandleTable = []
+    CandleTable = []
+    
+    #Load Security list from DB    
+    connection = sqlite3.connect('DB\\finam.db')
+    cursor = connection.cursor()
+    if timeframe is None:
+        cursor.execute('SELECT Board, Security, TimeFrame, DateFrom, DateTo, Quantity FROM SecurityList WHERE Active = 1')
+    else:
+        cursor.execute('SELECT Board, Security, TimeFrame, DateFrom, DateTo, Quantity FROM SecurityList WHERE Active = 1 AND TimeFrame = "'+timeframe+'"')
+    result = cursor.fetchall()
+    connection.close()
+    for line in result:    
+        SecurityCandleTable.append([line[0],line[1],line[2],line[3],line[4],line[5],''])    
+    print(SecurityCandleTable)
+    if len(SecurityCandleTable) == 0:
+        print('SecurityCandleTable is emmpty')
+        quit()
+    #Load Candle 
+    CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
+
+    print("Save data to DB...")
+    counter = 0
+    dataParts = BaseMgt.SplitListByLenth(CandleTable, 1000)
+    connection = sqlite3.connect('DB\\finam.db')
+    cursor = connection.cursor()    
+    for part in dataParts:               
+        cursor.executemany('INSERT OR IGNORE INTO Candles (Security, TimeFrame, DateTime, Open, High, Low, Close, Volume, Date, Time, ModifyDT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, "", "", datetime("now","localtime"))', part)
+        #['CNYRUB_TOM', 'D1', '2025-03-03', 12.14, 12.256, 12.087, 12.0945, 9012011000]    
+        counter += cursor.rowcount
+        connection.commit()
+    connection.close()  
+    print(counter, 'lines were updated')
+
+
 def GetCandleData():
     #Загрузка исторических данных (свечек) в БД
     import MarketMgt, BaseMgt
@@ -63,4 +122,5 @@ def GetCandleData():
     print(counter, 'lines were updated')
 
 if __name__ == "__main__":
-    GetCandleData()
+    GetCandleDataV2()
+    #Test()

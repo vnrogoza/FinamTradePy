@@ -211,7 +211,7 @@ def GetDateIntervals(argFromDate, argToDate, argTimeframe, argQuantity):
     if argQuantity is None:
       argQuantity=0
     if argFromDate=='' and argToDate=='' and argQuantity==0:
-      return
+      return    
     if argTimeframe not in ['M5','M15','H1','D1','W1']:
       return
     
@@ -223,12 +223,12 @@ def GetDateIntervals(argFromDate, argToDate, argTimeframe, argQuantity):
     timeFrameDelta = {'W1':timedelta(weeks=1),'D1':timedelta(days=1),'H1':timedelta(hours=1),'M15':timedelta(minutes=15),'M5':timedelta(minutes=5)}        
     oneDelta = timeFrameDelta[argTimeframe]  #timedelta: 1-hour
     resultRange = []
-    if argFromDate!='' and argToDate!='':      
+    if argFromDate!='' and argToDate!='':
+      if argFromDate > argToDate:
+        return
       argFromDate = datetime.fromisoformat(argFromDate)
       argToDate = datetime.fromisoformat(argToDate)      
-      totalLenth = argToDate - argFromDate  #timedelta: N-days L-hours M-minutes
-      if totalLenth < 0:
-        return
+      totalLenth = argToDate - argFromDate  #timedelta: N-days L-hours M-minutes  
       interval = seriesDelta[argTimeframe]  #timedelta: 300-hours   
       k, m = divmod(totalLenth, interval)  #k-частное, m-остаток      
       #Основные блоки
@@ -241,7 +241,7 @@ def GetDateIntervals(argFromDate, argToDate, argTimeframe, argQuantity):
         else:
           resultRange.append({'DateFrom':str(d0)[:16],'DateTo':str(d1)[:16]})
       #Остаток
-      if m > 0:
+      if m.days>0 or m.seconds>0:
         d0 = argFromDate+(k*interval)
         d1 = argFromDate+(k*interval+m) 
       #print(d0,'->',d1,'=',d1-d0, (d1-d0)/oneDelta)      
