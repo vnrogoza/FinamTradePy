@@ -31,7 +31,11 @@ async def GetClient():
   from finam_trade_api import TokenManager
   import asyncio
   token = LoadToken()    
-  client = Client(TokenManager(token))
+  
+  #client = Client(TokenManager(token))
+  tokenmanager = TokenManager(token)
+  client = Client(tokenmanager)
+
   jwt_date, jwt_token = LoadJwtToken()
   refresh = False
   if (jwt_date in (None, '')) or (jwt_token in (None, '')):
@@ -40,14 +44,19 @@ async def GetClient():
     nowTime = str(datetime.now())
     if nowTime > jwt_date:
       refresh = True
-    if refresh:
-      await client.access_tokens.reset_jwt_token()
-      resp = await client.access_tokens.get_jwt_token_details()
-      jwt_date = Utc2Loc(str(resp.expiresAt)) 
-      jwt_token = client.access_tokens.get_jwt_token()      
-      SaveJwtToken(jwt_date, jwt_token)
-    else:
-      client.access_tokens.set_jwt_token(jwt_token)
+  if refresh:
+    #await client.access_tokens.reset_jwt_token()
+    await client.access_tokens.set_jwt_token()  #get new JWT token from API
+    resp = await client.access_tokens.get_jwt_token_details()  #get JWT token details from API
+    #jwt_date = Utc2Loc(str(resp.expiresAt))
+    jwt_date = Utc2Loc(str(resp.expires_at))      
+    #jwt_token = client.access_tokens.get_jwt_token()
+    jwt_token = tokenmanager.jwt_token
+    
+    SaveJwtToken(jwt_date, jwt_token)
+  else:
+    #client.access_tokens.set_jwt_token(jwt_token)
+    tokenmanager.set_jwt_token(jwt_token)
   return client
 
 
@@ -193,13 +202,14 @@ def Utc2Loc(argDateTime):
 def Loc2Utc(argDateTime):
   from datetime import datetime, timezone
   ##timestamp - дата и время свечи в формате yyyy-MM-ddTHH:mm:ssZ в поясе UTC
-  if len(argDateTime)>10:    
+  if len(argDateTime)>10:
     T = datetime.fromisoformat(argDateTime)
     T = T.astimezone(timezone.utc)  #2025-05-09 09:45:39+00:00  
     T = str(T).replace(' ','')  #2025-06-0117:47:00+00:00
     T = T[:10]+'T'+T[10:18]+'Z'
     return T
-  return argDateTime
+  #2025-03-15T00:00:00Z
+  return argDateTime+'T00:00:00Z'
 
 
 def GetDateIntervals(argFromDate, argToDate, argTimeframe, argQuantity):
@@ -210,6 +220,8 @@ def GetDateIntervals(argFromDate, argToDate, argTimeframe, argQuantity):
       argToDate=''
     if argQuantity is None:
       argQuantity=0
+    if argFromDate > argToDate:      
+      raise Exception('argFromDate > argToDate')
     if argFromDate=='' and argToDate=='' and argQuantity==0:
       return    
     if argTimeframe not in ['M5','M15','H1','D1','W1']:

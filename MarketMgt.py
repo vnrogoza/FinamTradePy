@@ -56,6 +56,8 @@ def LoadCandels(argSecurityCandleTable):
         if timeframe in ['', None]:
             print('Timeframe not specified')
             quit()
+        if not timeframe in ['W1','D1','H1','M15','M5']:
+            raise Exception('Wrong timeframe interval')
         
         candleFileName = f'DB\{security}_{timeframe}.txt'
         if os.path.exists(candleFileName):
@@ -76,7 +78,8 @@ def LoadCandels(argSecurityCandleTable):
                 num += len(candles)
                 for line in candles:                    
                     if timeframe in ["D1","W1"]:
-                        T = str(line.date)
+                        #T = str(line.date)
+                        T = str(line.timestamp)[0:10]
                     else:
                         T = BaseMgt.Utc2Loc(str(line.timestamp))
                     O = line.open.value
