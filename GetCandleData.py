@@ -3,7 +3,7 @@ def Test():
     import MarketMgt, HtmlReportMgt
 
     #SecurityCandleTable = [["MISX","SBER","H1",'2025-08-26 08:00','2025-08-31 14:00',None,'W']]
-    SecurityCandleTable = [["MISX","SBER","D1",'2025-08-16','2025-08-31',None,'W']]
+    SecurityCandleTable = [["MISX","SBER","D1",'2025-08-16','2025-09-24',None,'W']]
     CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
     data = []
     data.append(['T','SBER','O','C','H'])
@@ -133,11 +133,7 @@ def GetCandleData():
     print(counter, 'lines were updated')
 
 if __name__ == "__main__":    
-    #from Task import run
-    print("main") 
-    def packA_func():
-        print("Выполняем packA_func()")
-    quit()
+    
     #GetCandleDataV2()
-    #Test()
+    Test()
     #GetCandleDataV2("D1")
