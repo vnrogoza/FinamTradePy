@@ -144,9 +144,16 @@ def Test():
     cursor.execute('DELETE FROM '+stCandTable+' WHERE Strategy="'+StgyCode+'"')
     cursor.execute('DELETE FROM '+stValTable+' WHERE Strategy="'+StgyCode+'"')
     connection.commit()
-    sqlParams = [Security, Period]
+    #Update candles
+    import MarketMgt
+    SecurityCandleTable = [["MISX",Security,Period,'2025-05-01','2025-09-24',None,'W']]
+    CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
+    res = SaveToDB(CandleTable)
+    if __name__ == "__main__":
+        print(res)
     #LIMIT 200
-    cursor.execute('SELECT "DateTime", Open, High, Low, Close, Volume FROM '+candTable+' WHERE Security=? AND Timeframe=? ORDER BY "DateTime"  LIMIT 1000 ', sqlParams)
+    sqlParams = [Security, Period]    
+    cursor.execute('SELECT * FROM (SELECT "DateTime", Open, High, Low, Close, Volume FROM '+candTable+' WHERE Security=? AND Timeframe=? ORDER BY "DateTime" DESC LIMIT 2000) ORDER BY "DateTime"  ', sqlParams)
     candleData = cursor.fetchall()    
     connection.close()    
     for candle in candleData:
@@ -243,6 +250,21 @@ def CreateReport(TestMode=False, StartEquity=10000):
     HtmlReportMgt.Finish()
     HtmlReportMgt.Show()
 
+def SaveToDB(CandleTable):
+    import BaseMgt
+    counter = 0
+    dataParts = BaseMgt.SplitListByLenth(CandleTable, 1000)
+    connection = sqlite3.connect('DB\\finam.db')
+    cursor = connection.cursor()    
+    for part in dataParts:               
+        cursor.executemany('INSERT OR IGNORE INTO Candles (Security, TimeFrame, DateTime, Open, High, Low, Close, Volume, Date, Time, ModifyDT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, "", "", datetime("now","localtime"))', part)
+        #['CNYRUB_TOM', 'D1', '2025-03-03', 12.14, 12.256, 12.087, 12.0945, 9012011000]    
+        counter += cursor.rowcount
+        connection.commit()
+    connection.close()    
+    retValue = str(counter)+' lines were updated'
+    return retValue
+    
 
 if __name__ == "__main__":
     #OnRun()    
