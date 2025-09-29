@@ -146,7 +146,7 @@ def Test():
     connection.commit()
     #Update candles
     import MarketMgt
-    SecurityCandleTable = [["MISX",Security,Period,'2025-05-01','2025-09-24',None,'W']]
+    SecurityCandleTable = [["MISX",Security,Period,'2025-09-01','2025-09-24',None,'W']]
     CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
     res = SaveToDB(CandleTable)
     if __name__ == "__main__":
