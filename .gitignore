@@ -1,4 +1,10 @@
 .venv/
+#!.venv/Lib/
+#!.venv/Lib/site-packages/
+#.venv/Lib/site-packages/*
+#!.venv/Lib/site-packages/finam_trade_api/
+#.venv/Lib/site-packages/finam_trade_api/*
+#!.venv/Lib/site-packages/finam_trade_api/order/
 .data/
 .vscode/
 __pycache__/

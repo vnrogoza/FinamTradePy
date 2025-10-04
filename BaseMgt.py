@@ -18,11 +18,13 @@ def LoadJwtToken():
   file.close
   return date,token
 
+
 def SaveJwtToken(date, token):
   file = open("tokenjwt.txt", "w")  
   file.write(date+';'+token)
   file.flush()
   file.close
+
 
 async def GetClient():
   from datetime import datetime
@@ -298,7 +300,6 @@ def SplitListByLenth(row, lenth):
     result = list(result)    
     result.append(row[k*lenth : k*lenth+m])
     return(result)
-
   
 if __name__ == "__main__":    
     #start()

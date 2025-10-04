@@ -5,6 +5,7 @@
 import sqlite3, HtmlReportMgt
 
 def OnRun(argTestCandle=None, TestMode=False):
+    #argTestCandle = [Security, Timeframe, Datetime, O, H, L, C, V]
     #argTestCandle=() - use it, argTestCandle=None - from table
     #argTestMode - table names    
     #Init
@@ -13,9 +14,9 @@ def OnRun(argTestCandle=None, TestMode=False):
     Firm="MC0061900000"
     Client="S7912/S7912"
     Account="L01+00000F00"
-    Security="SBER"
+    Security="GAZP"
     orderQty = 10
-    Period = "H1"
+    Period = "M5"
     ma1period = 9
     ma2period = 21
     candTable = 'Candles' 
@@ -134,8 +135,8 @@ def OnRun(argTestCandle=None, TestMode=False):
 
 def Test():
     StgyCode = '2MA_01'
-    Security="SBER"
-    Period = "H1"
+    Security="GAZP"
+    Period = "M5"
     candTable = 'Candles'
     stCandTable = 'TestStgyCandles'
     stValTable = 'TestStgyValues'
@@ -146,7 +147,7 @@ def Test():
     connection.commit()
     #Update candles
     import MarketMgt
-    SecurityCandleTable = [["MISX",Security,Period,'2025-09-01','2025-09-24',None,'W']]
+    SecurityCandleTable = [["MISX",Security,Period,'2025-09-28','2025-09-30 23:50',None,'W']]
     CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
     res = SaveToDB(CandleTable)
     if __name__ == "__main__":
@@ -157,14 +158,17 @@ def Test():
     candleData = cursor.fetchall()    
     connection.close()    
     for candle in candleData:
-        OnRun(argTestCandle=candle, TestMode=True)
+        #candle = [Security, Period].append(candle)        
+        candle2 = [Security, Period]
+        for c in candle: candle2.append(c)
+        OnRun(argTestCandle=candle2, TestMode=True)
 
         
 def CreateReport(TestMode=False, StartEquity=10000):
     StgyCode = '2MA_01'
     Class="TQBR"
-    Security="SBER"
-    Period = "H1"
+    Security="GAZP"
+    Period = "M5"
     ma1period = 9
     ma2period = 21    
     stCandTable = 'StgyCandles' 
@@ -278,8 +282,3 @@ if __name__ == "__main__":
     #print(next-start)
     #start = next
     
-    
-    
-
-
-

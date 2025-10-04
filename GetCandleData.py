@@ -132,7 +132,7 @@ def GetCandleData():
     connection.close()  
     print(counter, 'lines were updated')
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     
     #GetCandleDataV2()
     Test()
