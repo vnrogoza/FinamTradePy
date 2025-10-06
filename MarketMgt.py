@@ -22,14 +22,11 @@ def LoadCandels(argSecurityCandleTable):
         quantity = SecCandle[5]
         flag = SecCandle[6]               
         if board in ['', None]:
-            print('Board not specified')
-            quit()
+            raise Exception('Board not specified')            
         if security in ['', None]:
-            print('Security not specified')
-            quit()
+            raise Exception('Security not specified')            
         if timeframe in ['', None]:
-            print('Timeframe not specified')
-            quit()
+            raise Exception('Timeframe not specified')            
         if not timeframe in ['W1','D1','H1','M15','M5']:
             raise Exception('Wrong timeframe interval')
         

@@ -2,11 +2,13 @@
 def Test():
     import MarketMgt, HtmlReportMgt
 
-    #SecurityCandleTable = [["MISX","SBER","H1",'2025-08-26 08:00','2025-08-31 14:00',None,'W']]
-    SecurityCandleTable = [["MISX","SBER","D1",'2025-08-16','2025-09-24',None,'W']]
+    SecurityCandleTable = [["MISX","GAZP","M5", None, None, 10,'W']]
+    #SecurityCandleTable = [["MISX","GAZP","D1",'2025-08-16','2025-09-24',None,'W']]        
     CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
+    #for candle in CandleTable[-2:-1]:  #Только предпоследняя
+    #for candle in CandleTable[:-1]:  #Все кроме предпоследней
     data = []
-    data.append(['T','SBER','O','C','H'])
+    data.append(['T','GAZP','O','C','H'])
     for candle in CandleTable:   
         item = [candle[2], float(candle[5]), float(candle[3]), float(candle[6]), float(candle[4])]  #T,LOCH
         data.append(item)
@@ -15,8 +17,42 @@ def Test():
     HtmlReportMgt.Finish()
     HtmlReportMgt.Show()
 
-    
 
+#ДЛЯ АВТОЗАДАНИЙ. Получение данных и загрузка в БД - последние свечки. 
+def GetCandleDataV3(timeframe=None):
+    #Загрузка исторических данных (свечек) в БД
+    import MarketMgt
+    import sqlite3
+    retValue = ''; counter = 0
+
+    #Load Security list from DB    
+    connection = sqlite3.connect('DB\\finam.db')
+    cursor = connection.cursor()
+    if timeframe is None:
+        cursor.execute('SELECT Board, Security, TimeFrame, DateFrom, DateTo, Quantity FROM SecurityList WHERE Active = 1')
+    else:
+        if not timeframe in ['W1','D1','H1','M15','M5']:
+            raise Exception('Wrong timeframe')
+        cursor.execute('SELECT Board, Security, TimeFrame, DateFrom, DateTo, Quantity FROM SecurityList WHERE Active = 1 AND TimeFrame = "'+timeframe+'"')
+    result = cursor.fetchall()    
+    if len(result) == 0:        
+        raise Exception('SecurityCandle table result is emmpty')
+    
+    #Load Candle 
+    for line in result:    
+        SecurityCandleTable =[[line[0],line[1],line[2],line[3],line[4],line[5],'']]
+        retValue = '\n '+str(SecurityCandleTable)      
+        CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)    
+        cursor.executemany('INSERT OR IGNORE INTO Candles (Security, TimeFrame, DateTime, Open, High, Low, Close, Volume, Date, Time, ModifyDT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, "", "", datetime("now","localtime"))', CandleTable)        
+        counter += cursor.rowcount
+    #Finish    
+    connection.commit()
+    connection.close()    
+    retValue += '\n '+str(counter)+' lines were updated'
+    return retValue
+
+
+#Получение данных и загрузка в БД. 
 def GetCandleDataV2(timeframe=None):
     #Загрузка исторических данных (свечек) в БД
     import MarketMgt, BaseMgt
@@ -39,18 +75,15 @@ def GetCandleDataV2(timeframe=None):
     result = cursor.fetchall()
     connection.close()
     for line in result:    
-        SecurityCandleTable.append([line[0],line[1],line[2],line[3],line[4],line[5],''])    
-    if __name__ == "__main__":
-        print(SecurityCandleTable)
+        SecurityCandleTable.append([line[0],line[1],line[2],line[3],line[4],line[5],'']) 
     retValue = str(SecurityCandleTable)
     if len(SecurityCandleTable) == 0:        
         raise Exception('SecurityCandleTable is emmpty')
-        quit()
+        
     #Load Candle 
     CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
 
-    if __name__ == "__main__":
-        print("Save data to DB...")
+    #Save
     counter = 0
     dataParts = BaseMgt.SplitListByLenth(CandleTable, 1000)
     connection = sqlite3.connect('DB\\finam.db')
@@ -60,9 +93,7 @@ def GetCandleDataV2(timeframe=None):
         #['CNYRUB_TOM', 'D1', '2025-03-03', 12.14, 12.256, 12.087, 12.0945, 9012011000]    
         counter += cursor.rowcount
         connection.commit()
-    connection.close()
-    if __name__ == "__main__":
-        print(counter, 'lines were updated')
+    connection.close()    
     retValue += '\n '+str(counter)+' lines were updated'
     return retValue
     
@@ -104,21 +135,6 @@ def GetCandleData():
     #Load Candle tablepip
     CandleTable = MarketMgt.LoadCandels(SecurityCandleTable)
 
-
-    '''
-    for candle in CandleTable:    
-        #['CNYRUB_TOM', 'D1', datetime.datetime(2024, 5, 10, 0, 0), 12.6255, 12.6975, 12.6135, 12.692, 2100703000]
-        #candle = [security, timeframe, T, O, H, L, C, V]    
-        #item = [i, candle[5], candle[3], candle[6], candle[4]]
-        item = [candle[2], candle[5], candle[3], candle[6], candle[4]]
-        data.append(item)
-
-    HtmlReportHelper.Start()
-    HtmlReportHelper.AddChart("chart_div", data, 'CNY_RUB')
-    HtmlReportHelper.Finish()
-    HtmlReportHelper.Show()
-    '''
-
     print("Save data to DB...")
     counter = 0
     dataParts = BaseMgt.SplitListByLenth(CandleTable, 1000)
@@ -132,8 +148,9 @@ def GetCandleData():
     connection.close()  
     print(counter, 'lines were updated')
 
-if __name__ == "__main__":
-    
+
+if __name__ == "__main__":    
     #GetCandleDataV2()
-    Test()
-    #GetCandleDataV2("D1")
+    #Test()
+    RetValue = GetCandleDataV3("M5")
+    print(RetValue)

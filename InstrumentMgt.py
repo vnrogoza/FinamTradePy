@@ -9,9 +9,16 @@ from datetime import datetime
 import BaseMgt
 
 #token = os.getenv("TOKEN", "")
-token = BaseMgt.GetToken()
-client = Client(token)
+#token = BaseMgt.GetToken()
+#client = Client(token)
 SecurityList = []
+
+
+def GetAllSecurityListV2():
+    client = asyncio.run( BaseMgt.GetClient() )
+    resonse = asyncio.run( client.assets.get_assets() )
+    return
+
 
 #OLD VERSION - API V1 Helper
 async def get_all_data():
@@ -107,5 +114,6 @@ def LoadAllSecurityList():
     
 if __name__ == "__main__":    
     #GetAllSecurityList()
-    LoadAllSecurityList()
+    #LoadAllSecurityList()
+    GetAllSecurityListV2()
     

@@ -32,8 +32,8 @@ async def GetOrders():
 
 
 if __name__ == "__main__":        
-    CreateOrder(account_id="1908434", symbol="GAZP@MISX", 
-                price=115.0,
-                quantity=1, side=Side.BUY, type=OrderType.LIMIT)
+    #CreateOrder(account_id="1908434", symbol="GAZP@MISX", 
+    #            price=115.0,
+    #            quantity=10, side=Side.BUY, type=OrderType.LIMIT)
     print(AccountMgt.GetCurrentPosition(account_id="1908434", security_id="GAZP@MISX"))
 

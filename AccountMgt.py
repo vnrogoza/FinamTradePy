@@ -1,4 +1,3 @@
-from pprint import pprint
 from finam_trade_api.base_client.models import FinamDecimal, FinamMoney
 from finam_trade_api.account import (GetTransactionsRequest, GetTradesRequest)
 
@@ -12,8 +11,8 @@ def GetCurrentPosition(account_id, security_id):
     positions = asyncio.run(GetAccountPositions(account_id))    
     for position in positions:
         if position["Security"]==security_id:
-            return position["Quantity"]
-    return 0    
+            return {"quantity":position["Quantity"], "price":position["Price"], "avgprice":position["AvgPrice"]}
+    return {"quantity": 0, "price": None, "avgprice":None}
 
 
 async def GetAccountPositions(account_id):
@@ -25,6 +24,7 @@ async def GetAccountPositions(account_id):
         #i = pos.symbol.find('@')
         #symbol = pos.symbol[:i]
         symbol = pos.symbol
+        
         positions.append({"Security":symbol, "Quantity":float(pos.quantity.value), "AvgPrice":float(pos.average_price.value), "Price":float(pos.current_price.value)})
         
     return positions
@@ -64,7 +64,10 @@ async def GetOrders():
 
 if __name__ == "__main__":
     import asyncio
-    account_id = '1922179'  #'1908434'
-    security = 'LQDT'  #'LQDT'    
-    res = GetCurrentPosition(security_id=security, account_id=account_id)
-    print('\n Quantity ', res)
+    account_id = '1908434'  #'1908434'
+    security = 'LQDT@MISX'  #'LQDT'    
+    #res = GetCurrentPosition(security_id=security, account_id=account_id)
+    #print('\n Quantity ', res)
+    positions = asyncio.run(GetAccountPositions(account_id))    
+    for position in positions:
+        print(position)
